@@ -1,0 +1,41 @@
+{
+  "info": {
+    "name": "Ikano API Tests",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Smoke checks for the FastAPI server-rendered app."
+  },
+  "item": [
+    {
+      "name": "GET Home",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test('Body includes app title', function () {",
+              "    pm.expect(pm.response.text()).to.include('Ikano Python Developer Work Sample');",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

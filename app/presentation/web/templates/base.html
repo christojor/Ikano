@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{% block title %}Ikano Work Sample{% endblock %}</title>
+    <style>
+      :root {
+        --bg: #f3f5f2;
+        --text: #1f2a1f;
+        --card: #ffffff;
+        --accent: #2f6b3c;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: Georgia, "Times New Roman", serif;
+        background: radial-gradient(circle at top right, #e4ece4, var(--bg));
+        color: var(--text);
+      }
+      .container {
+        max-width: 920px;
+        margin: 3rem auto;
+        padding: 0 1rem;
+      }
+      .card {
+        background: var(--card);
+        border: 1px solid #d8e0d8;
+        border-radius: 14px;
+        padding: 1.5rem;
+        box-shadow: 0 12px 30px rgba(31, 42, 31, 0.08);
+      }
+      .badge {
+        display: inline-block;
+        margin-top: 1rem;
+        background: #e7f3e8;
+        color: var(--accent);
+        border: 1px solid #c9ddcb;
+        border-radius: 999px;
+        padding: 0.25rem 0.75rem;
+        font-weight: 700;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="container">{% block content %}{% endblock %}</main>
+  </body>
+</html>

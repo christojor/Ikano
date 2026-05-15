@@ -1,0 +1,20 @@
+{
+  "name": "ikano-work-sample-tests",
+  "version": "0.1.0",
+  "private": true,
+  "description": "API and E2E testing toolchain for Ikano work sample app",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test:api": "newman run tests/postman/ikano.postman_collection.json --environment tests/postman/local.postman_environment.json",
+    "test:e2e": "playwright test",
+    "test:e2e:chromium": "playwright test --project=chromium",
+    "test:e2e:firefox": "playwright test --project=firefox",
+    "test:e2e:webkit": "playwright test --project=webkit"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.54.2",
+    "newman": "^6.2.1"
+  }
+}
