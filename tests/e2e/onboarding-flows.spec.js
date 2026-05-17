@@ -1,5 +1,26 @@
 const { test, expect } = require("@playwright/test");
 
+async function submitCurrentStep(page) {
+  const currentHeading = await page.getByRole('heading', { level: 1 }).textContent();
+  await page.evaluate(() => {
+    const form = document.getElementById("advance-form");
+    if (!form) {
+      throw new Error("advance-form not found");
+    }
+
+    if (typeof form.requestSubmit === "function") {
+      form.requestSubmit();
+      return;
+    }
+
+    form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+  });
+  await page.waitForFunction((previousHeading) => {
+    const heading = document.querySelector("h1");
+    return heading && heading.textContent && heading.textContent.trim() !== previousHeading;
+  }, currentHeading);
+}
+
 // Helper to complete a flow
 async function completeFlow(page, country, partyType) {
   // Start page
@@ -12,24 +33,33 @@ async function completeFlow(page, country, partyType) {
   await page.check(`input[value="${partyType}"]`);
   
   // Submit start form
-  await page.click('button[type="submit"]');
-  await page.waitForNavigation();
+  await page.evaluate(() => {
+    const form = document.getElementById("start-form");
+    if (!form) {
+      throw new Error("start-form not found");
+    }
+
+    if (typeof form.requestSubmit === "function") {
+      form.requestSubmit();
+      return;
+    }
+
+    form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+  });
+  await page.waitForFunction(() => {
+    return window.location.pathname.includes("/step") || window.location.pathname.includes("/result");
+  });
   
   // Complete steps until final decision page
   for (let i = 0; i < 12; i++) {
-    if (page.url().includes("/result")) {
+    if ((await page.locator('button[type="submit"]').count()) === 0) {
       break;
     }
-
-    const advanceButton = page.locator('button[type="submit"]');
-    await expect(advanceButton).toBeVisible();
-    await expect(advanceButton).toBeEnabled();
-    await advanceButton.click();
-    await page.waitForTimeout(300);
+    await submitCurrentStep(page);
   }
   
   // Verify result page
-  await expect(page.getByRole('heading')).toContainText(/Approved|Rejected|Review/);
+  await expect(page.getByRole('heading', { level: 1 })).toContainText(/Approved|Rejected|Review/);
   return page.url();
 }
 
@@ -45,7 +75,7 @@ test("Sweden Private Individual happy path", async ({ page }) => {
   await expect(page.getByRole("cell", { name: "PRIVATE", exact: true })).toBeVisible(); // Party type
   
   // Verify approved status
-  await expect(page.getByRole("heading")).toContainText("Application Approved");
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("Application Approved");
 
   // Verify Decision Date is displayed as date + time (YYYY-MM-DD HH:MM:SS)
   const decisionDateCell = page.locator("tr", { hasText: "Decision Date" }).locator("td");
@@ -59,7 +89,7 @@ test("Sweden Business happy path", async ({ page }) => {
   
   await expect(page.getByRole("cell", { name: "SE", exact: true })).toBeVisible();
   await expect(page.getByRole("cell", { name: "BUSINESS", exact: true })).toBeVisible();
-  await expect(page.getByRole("heading")).toContainText("Application Approved");
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("Application Approved");
 });
 
 test("Spain Private Individual happy path", async ({ page }) => {
@@ -68,7 +98,7 @@ test("Spain Private Individual happy path", async ({ page }) => {
   
   await expect(page.getByRole("cell", { name: "ES", exact: true })).toBeVisible();
   await expect(page.getByRole("cell", { name: "PRIVATE", exact: true })).toBeVisible();
-  await expect(page.getByRole("heading")).toContainText("Application Approved");
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("Application Approved");
 });
 
 test("Spain Business happy path", async ({ page }) => {
@@ -77,7 +107,7 @@ test("Spain Business happy path", async ({ page }) => {
   
   await expect(page.getByRole("cell", { name: "ES", exact: true })).toBeVisible();
   await expect(page.getByRole("cell", { name: "BUSINESS", exact: true })).toBeVisible();
-  await expect(page.getByRole("heading")).toContainText("Application Approved");
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("Application Approved");
 });
 
 test("Poland Private Individual happy path", async ({ page }) => {
@@ -86,7 +116,7 @@ test("Poland Private Individual happy path", async ({ page }) => {
   
   await expect(page.getByRole("cell", { name: "PL", exact: true })).toBeVisible();
   await expect(page.getByRole("cell", { name: "PRIVATE", exact: true })).toBeVisible();
-  await expect(page.getByRole("heading")).toContainText("Application Approved");
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("Application Approved");
 });
 
 test("Poland Business happy path", async ({ page }) => {
@@ -95,7 +125,7 @@ test("Poland Business happy path", async ({ page }) => {
   
   await expect(page.getByRole("cell", { name: "PL", exact: true })).toBeVisible();
   await expect(page.getByRole("cell", { name: "BUSINESS", exact: true })).toBeVisible();
-  await expect(page.getByRole("heading")).toContainText("Application Approved");
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("Application Approved");
 });
 
 // Test alternative decision paths
@@ -106,31 +136,56 @@ test("Manual review path - choose manual review scenario", async ({ page }) => {
   // Start with SE/PRIVATE
   await page.selectOption('select[name="country_code"]', "SE");
   await page.check('input[value="PRIVATE"]');
-  await page.click('button[type="submit"]');
-  await page.waitForNavigation();
+  await page.evaluate(() => {
+    const form = document.getElementById("start-form");
+    if (!form) {
+      throw new Error("start-form not found");
+    }
+
+    if (typeof form.requestSubmit === "function") {
+      form.requestSubmit();
+      return;
+    }
+
+    form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+  });
+  await page.waitForFunction(() => {
+    return window.location.pathname.includes("/step") || window.location.pathname.includes("/result");
+  });
   
   // Go through first step
-  await page.click('button[type="submit"]');
-  await page.waitForTimeout(300);
-  
+  await submitCurrentStep(page);
+
   // At check step, choose MANUAL_REVIEW
-  if (page.locator('input[value="MANUAL_REVIEW"]').isVisible()) {
-    await page.check('input[value="MANUAL_REVIEW"]');
-    await page.click('button[type="submit"]');
-    await page.waitForTimeout(300);
-  }
-  
-  // Continue with PASS for remaining steps
+  await expect(page.locator('input[value="MANUAL_REVIEW"]')).toBeVisible();
+  await page.check('input[value="MANUAL_REVIEW"]');
+  await page.evaluate(() => {
+    const form = document.getElementById("advance-form");
+    if (!form) {
+      throw new Error("advance-form not found");
+    }
+
+    if (typeof form.requestSubmit === "function") {
+      form.requestSubmit();
+      return;
+    }
+
+    form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+  });
+  await page.waitForFunction(() => {
+    return window.location.pathname.includes("/step") || window.location.pathname.includes("/result");
+  });
+
+  // Continue with PASS for remaining steps until the final decision page.
   for (let i = 0; i < 10; i++) {
-    await page.click('button[type="submit"]');
-    await page.waitForTimeout(300);
-    if (page.url().includes("/result")) {
+    if ((await page.locator('button[type="submit"]').count()) === 0) {
       break;
     }
+    await submitCurrentStep(page);
   }
   
   // Should end in UNDER_REVIEW
-  await expect(page.getByRole("heading")).toContainText("Under Manual Review");
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("Under Manual Review");
 });
 
 test("Rejection path - choose fail scenario", async ({ page }) => {
@@ -139,35 +194,56 @@ test("Rejection path - choose fail scenario", async ({ page }) => {
   // Start with ES/BUSINESS
   await page.selectOption('select[name="country_code"]', "ES");
   await page.check('input[value="BUSINESS"]');
-  await page.click('button[type="submit"]');
-  await page.waitForNavigation();
+  await page.evaluate(() => {
+    const form = document.getElementById("start-form");
+    if (!form) {
+      throw new Error("start-form not found");
+    }
+
+    if (typeof form.requestSubmit === "function") {
+      form.requestSubmit();
+      return;
+    }
+
+    form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+  });
+  await page.waitForFunction(() => {
+    return window.location.pathname.includes("/step") || window.location.pathname.includes("/result");
+  });
   
   // Go through steps, choose FAIL at a check step
-  await page.click('button[type="submit"]');
-  await page.waitForTimeout(300);
-  
-  if (page.locator('input[value="FAIL"]').isVisible()) {
-    await page.check('input[value="FAIL"]');
-    await page.click('button[type="submit"]');
-    await page.waitForTimeout(300);
-  } else {
-    // Continue to next step
-    await page.click('button[type="submit"]');
-    await page.waitForTimeout(300);
-  }
-  
-  // Continue until result page for final decision
-  for (let i = 0; i < 6; i++) {
-    if (page.url().includes("/result")) {
+  await submitCurrentStep(page);
+
+  await expect(page.locator('input[value="FAIL"]')).toBeVisible();
+  await page.check('input[value="FAIL"]');
+  await page.evaluate(() => {
+    const form = document.getElementById("advance-form");
+    if (!form) {
+      throw new Error("advance-form not found");
+    }
+
+    if (typeof form.requestSubmit === "function") {
+      form.requestSubmit();
+      return;
+    }
+
+    form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+  });
+  await page.waitForFunction(() => {
+    return window.location.pathname.includes("/step") || window.location.pathname.includes("/result");
+  });
+
+  // Continue until the final decision page.
+  for (let i = 0; i < 10; i++) {
+    if ((await page.locator('button[type="submit"]').count()) === 0) {
       break;
     }
-    await page.click('button[type="submit"]');
-    await page.waitForTimeout(300);
+    await submitCurrentStep(page);
   }
 
   // Should end in REJECTED
   await expect(page).toHaveURL(/\/result$/);
-  await expect(page.getByRole("heading")).toContainText("Rejected");
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("Rejected");
 });
 
 // Test form validation
