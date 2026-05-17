@@ -44,6 +44,9 @@ erDiagram
     varchar flow_name
     int flow_version
     boolean is_active
+    timestamp created_at
+    timestamp updated_at
+    timestamp deleted_at
   }
 
   ONBOARDING_STEP {
@@ -53,6 +56,9 @@ erDiagram
     varchar step_title
     int step_order
     boolean is_terminal
+    timestamp created_at
+    timestamp updated_at
+    timestamp deleted_at
   }
 
   APPLICATION {
@@ -65,6 +71,7 @@ erDiagram
     bigint current_step_id FK
     timestamp created_at
     timestamp updated_at
+    timestamp deleted_at
     timestamp submitted_at
   }
 
@@ -75,6 +82,8 @@ erDiagram
     varchar email
     varchar phone_e164
     timestamp created_at
+    timestamp updated_at
+    timestamp deleted_at
   }
 
   PERSON_PROFILE {
@@ -85,6 +94,9 @@ erDiagram
     date date_of_birth
     varchar national_id_value
     char2 nationality_country_code FK
+    timestamp created_at
+    timestamp updated_at
+    timestamp deleted_at
   }
 
   BUSINESS_PROFILE {
@@ -94,6 +106,9 @@ erDiagram
     varchar registration_number
     varchar tax_number
     char2 incorporation_country_code FK
+    timestamp created_at
+    timestamp updated_at
+    timestamp deleted_at
   }
 
   ADDRESS {
@@ -103,6 +118,9 @@ erDiagram
     varchar postal_code
     varchar city
     char2 country_code FK
+    timestamp created_at
+    timestamp updated_at
+    timestamp deleted_at
   }
 
   PARTY_ADDRESS {
@@ -136,6 +154,9 @@ erDiagram
     bigint provider_id FK
     varchar correlation_id
     varchar input_fingerprint
+    timestamp created_at
+    timestamp updated_at
+    timestamp deleted_at
     timestamp requested_at
     timestamp completed_at
     varchar technical_status
@@ -149,6 +170,9 @@ erDiagram
     int rule_set_version
     timestamp active_from
     timestamp active_to
+    timestamp created_at
+    timestamp updated_at
+    timestamp deleted_at
   }
 
   DECISION_REASON {
@@ -165,6 +189,9 @@ erDiagram
     timestamp decided_at
     varchar decided_by
     text rationale_json
+    timestamp created_at
+    timestamp updated_at
+    timestamp deleted_at
   }
 
   APPLICATION_DECISION_REASON {
@@ -179,6 +206,9 @@ erDiagram
     bigint application_id FK
     varchar review_status
     varchar assigned_to
+    timestamp created_at
+    timestamp updated_at
+    timestamp deleted_at
     timestamp opened_at
     timestamp closed_at
     varchar resolution_notes
@@ -227,7 +257,7 @@ erDiagram
   APPLICANT_PARTY ||--o{ CHECK_RUN : evaluated_for
   CHECK_TYPE ||--o{ CHECK_RUN : type
   EXTERNAL_PROVIDER ||--o{ CHECK_RUN : executes
-  CHECK_BUSINESS_RESULT ||--o{ CHECK_RUN : yields
+  CHECK_BUSINESS_RESULT |o--o{ CHECK_RUN : yields
 
   APPLICATION ||--o| APPLICATION_DECISION : concludes
   DECISION_RULE_SET ||--o{ APPLICATION_DECISION : applies
