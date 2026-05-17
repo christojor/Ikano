@@ -8,6 +8,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from app.application.domain.exceptions import (
     ApplicationNotFoundError,
+    InvalidStepPayloadError,
     NoActiveOnboardingFlowError,
     OnboardingFlowNotFoundError,
     UnsupportedCountryCodeError,
@@ -16,6 +17,7 @@ from app.application.domain.exceptions import (
 from app.application.domain.onboarding import (
     ApplicationRecord,
     ApplicationStatus,
+    ApplicationStepRecord,
     AuditEvent,
     CheckRunRecord,
     ManualReviewCaseRecord,
@@ -83,9 +85,11 @@ class AdvanceStepRequest(BaseModel):
     """
 
     model_config = ConfigDict(
+        extra="allow",
         json_schema_extra={
             "example": {
                 "scenario": "PASS",
+                "identity_number": "199001019999",
             }
         }
     )
@@ -213,6 +217,18 @@ class ManualReviewResponse(BaseModel):
     )
 
 
+class ApplicationStepResponse(BaseModel):
+    """Persisted status trail for completed onboarding steps."""
+
+    application_step_id: int = Field(..., description="Unique step record identifier")
+    application_id: int = Field(..., description="Application identifier")
+    step_code: str = Field(..., description="Step code completed by the application")
+    step_order: int = Field(..., description="Step order within flow")
+    step_status_code: str = Field(..., description="Step lifecycle status")
+    payload_snapshot: dict[str, str] = Field(..., description="Captured payload submitted at completion")
+    completed_at: str = Field(..., description="Completion timestamp (ISO 8601)")
+
+
 def _to_application_response(application: ApplicationRecord) -> ApplicationResponse:
     """Convert domain ApplicationRecord to API response model."""
     submitted_at = (
@@ -265,6 +281,19 @@ def _to_manual_review_response(case: ManualReviewCaseRecord) -> ManualReviewResp
         application_id=case.application_id,
         review_status=case.review_status.value,
         opened_at=case.opened_at.isoformat(),
+    )
+
+
+def _to_application_step_response(step: ApplicationStepRecord) -> ApplicationStepResponse:
+    """Convert domain ApplicationStepRecord to API response model."""
+    return ApplicationStepResponse(
+        application_step_id=step.application_step_id,
+        application_id=step.application_id,
+        step_code=step.step_code,
+        step_order=step.step_order,
+        step_status_code=step.step_status_code.value,
+        payload_snapshot=step.payload_snapshot,
+        completed_at=step.completed_at.isoformat(),
     )
 
 
@@ -368,13 +397,17 @@ def advance_onboarding(
     - 400: Flow not found or invalid step transition
     """
     try:
+        extra_payload = {
+            key: str(value)
+            for key, value in (payload.model_extra or {}).items()
+        }
         application = onboarding_service.advance_step(
             application_id=application_id,
-            payload={"scenario": payload.scenario},
+            payload={"scenario": payload.scenario, **extra_payload},
         )
     except ApplicationNotFoundError as error:
         raise HTTPException(status_code=404, detail=str(error)) from error
-    except OnboardingFlowNotFoundError as error:
+    except (OnboardingFlowNotFoundError, InvalidStepPayloadError) as error:
         raise HTTPException(status_code=400, detail=str(error)) from error
     return _to_application_response(application)
 
@@ -409,6 +442,30 @@ def get_onboarding_application(
     except ApplicationNotFoundError as error:
         raise HTTPException(status_code=404, detail=str(error)) from error
     return _to_application_response(application)
+
+
+@router.get(
+    "/api/onboarding/{application_id}/steps",
+    response_model=list[ApplicationStepResponse],
+    tags=["Applications"],
+    summary="Get step status trail",
+    responses={
+        200: {"description": "Persisted step status trail (may be empty)"},
+        404: {"description": "Application not found"},
+    },
+)
+def get_application_steps(
+    application_id: int,
+    onboarding_service: Annotated[OnboardingService, Depends(get_onboarding_service)],
+) -> list[ApplicationStepResponse]:
+    """Retrieve persisted completed step records for the application."""
+    try:
+        onboarding_service.get_application(application_id=application_id)
+    except ApplicationNotFoundError as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
+
+    steps = onboarding_service.get_application_steps(application_id=application_id)
+    return [_to_application_step_response(step) for step in steps]
 
 
 # ============================================================================

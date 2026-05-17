@@ -1,6 +1,7 @@
 from typing import Protocol
 
 from app.application.ports.application_repository_port import ApplicationRepositoryPort
+from app.application.ports.application_step_repository_port import ApplicationStepRepositoryPort
 from app.application.ports.audit_event_repository_port import AuditEventRepositoryPort
 from app.application.ports.check_run_repository_port import CheckRunRepositoryPort
 from app.application.ports.flow_query_port import FlowQueryPort
@@ -12,6 +13,7 @@ class OnboardingRepositoryPort(
     ApplicationRepositoryPort,
     AuditEventRepositoryPort,
     CheckRunRepositoryPort,
+    ApplicationStepRepositoryPort,
     ManualReviewRepositoryPort,
     Protocol,
 ):

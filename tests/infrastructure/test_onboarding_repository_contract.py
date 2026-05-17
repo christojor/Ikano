@@ -4,6 +4,7 @@ from app.application.domain.onboarding import (
     ActorType,
     ApplicationRecord,
     ApplicationStatus,
+    ApplicationStepRecord,
     AuditEvent,
     AuditEventType,
     CheckBusinessResultCode,
@@ -13,6 +14,7 @@ from app.application.domain.onboarding import (
     ManualReviewCaseRecord,
     ManualReviewStatus,
     PartyTypeCode,
+    StepStatusCode,
 )
 from app.infrastructure.repositories.in_memory_onboarding_repository import (
     InMemoryOnboardingRepository,
@@ -82,9 +84,22 @@ def test_repository_contract_supports_audit_check_and_manual_review_records() ->
         )
     )
 
+    repo.append_application_step(
+        ApplicationStepRecord(
+            application_step_id=repo.next_application_step_id(),
+            application_id=application_id,
+            step_code="COLLECT_SE_IDENTITY",
+            step_order=1,
+            step_status_code=StepStatusCode.COMPLETED,
+            payload_snapshot={"identity_number": "199001019999"},
+            completed_at=now,
+        )
+    )
+
     assert repo.list_audit_events(application_id)[0].event_type == AuditEventType.APPLICATION_STARTED
     assert repo.list_check_runs(application_id)[0].check_type_code == CheckTypeCode.KYC
     assert repo.get_manual_review_case(application_id) is not None
+    assert repo.list_application_steps(application_id)[0].step_status_code == StepStatusCode.COMPLETED
 
 
 def test_cross_flow_integrity_isolation() -> None:

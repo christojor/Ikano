@@ -128,6 +128,26 @@ class ApplicationModel(Base):
     submitted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
+class ApplicationStepModel(Base):
+    __tablename__ = "application_step"
+
+    application_step_id: Mapped[int] = mapped_column(
+        BigInteger, primary_key=True, autoincrement=True
+    )
+    application_id: Mapped[int] = mapped_column(
+        ForeignKey("application.application_id"), nullable=False
+    )
+    step_code: Mapped[str] = mapped_column(String(32), nullable=False)
+    step_order: Mapped[int] = mapped_column(Integer, nullable=False)
+    step_status_code: Mapped[str] = mapped_column(
+        ForeignKey("step_status.step_status_code"), nullable=False
+    )
+    payload_json: Mapped[dict[str, str] | None] = mapped_column(JSON, nullable=True)
+    completed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+
 class CheckRunModel(Base):
     __tablename__ = "check_run"
 

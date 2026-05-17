@@ -7,6 +7,7 @@ from app.application.domain.onboarding import (
     ActorType,
     ApplicationRecord,
     ApplicationStatus,
+    ApplicationStepRecord,
     AuditEvent,
     AuditEventType,
     CheckBusinessResultCode,
@@ -18,9 +19,11 @@ from app.application.domain.onboarding import (
     OnboardingFlow,
     OnboardingStep,
     PartyTypeCode,
+    StepStatusCode,
 )
 from app.infrastructure.db.models.onboarding import (
     ApplicationModel,
+    ApplicationStepModel,
     AuditEventModel,
     CheckRunModel,
     ManualReviewCaseModel,
@@ -108,6 +111,43 @@ class SQLAlchemyOnboardingRepository:
 
     def next_application_id(self) -> int:
         return self._next_sequence_value(table_name="application", column_name="application_id")
+
+    def next_application_step_id(self) -> int:
+        return self._next_sequence_value(table_name="application_step", column_name="application_step_id")
+
+    def append_application_step(self, application_step: ApplicationStepRecord) -> None:
+        self._session.add(
+            ApplicationStepModel(
+                application_step_id=application_step.application_step_id,
+                application_id=application_step.application_id,
+                step_code=application_step.step_code,
+                step_order=application_step.step_order,
+                step_status_code=application_step.step_status_code.value,
+                payload_json=application_step.payload_snapshot,
+                completed_at=application_step.completed_at,
+            )
+        )
+        self._session.flush()
+
+    def list_application_steps(self, application_id: int) -> tuple[ApplicationStepRecord, ...]:
+        models = (
+            self._session.query(ApplicationStepModel)
+            .filter(ApplicationStepModel.application_id == application_id)
+            .order_by(ApplicationStepModel.application_step_id.asc())
+            .all()
+        )
+        return tuple(
+            ApplicationStepRecord(
+                application_step_id=model.application_step_id,
+                application_id=model.application_id,
+                step_code=model.step_code,
+                step_order=model.step_order,
+                step_status_code=StepStatusCode(model.step_status_code),
+                payload_snapshot=model.payload_json or {},
+                completed_at=model.completed_at,
+            )
+            for model in models
+        )
 
     def append_audit_event(self, event: AuditEvent) -> None:
         self._session.add(

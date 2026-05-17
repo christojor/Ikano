@@ -71,11 +71,11 @@
           ]
         },
         {
-          "name": "2. Advance — Collect private profile (step 1)",
+          "name": "2. Advance — Collect Swedish personal identity (step 1)",
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\"scenario\": \"PASS\"}" },
+            "body": { "mode": "raw", "raw": "{\"scenario\": \"PASS\", \"identity_number\": \"199001019999\"}" },
             "url": {
               "raw": "{{baseUrl}}/api/onboarding/{{applicationId}}/advance",
               "host": ["{{baseUrl}}"],
@@ -98,7 +98,7 @@
           ]
         },
         {
-          "name": "3. Advance — KYC check (step 2, PASS)",
+          "name": "3. Advance — BankID-style identity check (step 2, PASS)",
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
@@ -125,11 +125,11 @@
           ]
         },
         {
-          "name": "4. Advance — Sanctions check (step 3, PASS)",
+          "name": "4. Advance — Confirm contact and address (step 3)",
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\"scenario\": \"PASS\"}" },
+            "body": { "mode": "raw", "raw": "{\"scenario\": \"PASS\", \"email\": \"applicant@example.com\"}" },
             "url": {
               "raw": "{{baseUrl}}/api/onboarding/{{applicationId}}/advance",
               "host": ["{{baseUrl}}"],
@@ -152,11 +152,92 @@
           ]
         },
         {
-          "name": "5. Advance — Decision (step 4)",
+          "name": "5. Advance — Consent and sanctions declaration (step 4, PASS)",
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": { "mode": "raw", "raw": "{\"scenario\": \"PASS\"}" },
+            "url": {
+              "raw": "{{baseUrl}}/api/onboarding/{{applicationId}}/advance",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "onboarding", "{{applicationId}}", "advance"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('Status still IN_PROGRESS', () => pm.expect(body.status).to.eql('IN_PROGRESS'));",
+                  "pm.test('Moved to step 5', () => pm.expect(body.current_step_order).to.eql(5));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6. Advance — Employment and affordability inputs (step 5)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"scenario\": \"PASS\", \"monthly_income\": \"45000\"}" },
+            "url": {
+              "raw": "{{baseUrl}}/api/onboarding/{{applicationId}}/advance",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "onboarding", "{{applicationId}}", "advance"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('Status still IN_PROGRESS', () => pm.expect(body.status).to.eql('IN_PROGRESS'));",
+                  "pm.test('Moved to step 6', () => pm.expect(body.current_step_order).to.eql(6));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "7. Advance — Credit and affordability decision (step 6, PASS)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"scenario\": \"PASS\", \"monthly_income\": \"45000\", \"monthly_expenses\": \"15000\"}" },
+            "url": {
+              "raw": "{{baseUrl}}/api/onboarding/{{applicationId}}/advance",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "onboarding", "{{applicationId}}", "advance"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('Status still IN_PROGRESS', () => pm.expect(body.status).to.eql('IN_PROGRESS'));",
+                  "pm.test('Moved to step 7', () => pm.expect(body.current_step_order).to.eql(7));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "8. Advance — Review and submit (step 7)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"scenario\": \"PASS\", \"accept_terms\": \"true\"}" },
             "url": {
               "raw": "{{baseUrl}}/api/onboarding/{{applicationId}}/advance",
               "host": ["{{baseUrl}}"],
@@ -179,7 +260,7 @@
           ]
         },
         {
-          "name": "6. GET application — verify APPROVED",
+          "name": "9. GET application — verify APPROVED",
           "request": {
             "method": "GET",
             "header": [],
@@ -244,7 +325,7 @@
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\"scenario\": \"PASS\"}" },
+            "body": { "mode": "raw", "raw": "{\"scenario\": \"PASS\", \"organization_number\": \"556677-8899\"}" },
             "url": {
               "raw": "{{baseUrl}}/api/onboarding/{{mrApplicationId}}/advance",
               "host": ["{{baseUrl}}"],

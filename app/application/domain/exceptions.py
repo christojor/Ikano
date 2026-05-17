@@ -24,3 +24,7 @@ class OnboardingFlowNotFoundError(OnboardingError):
 
 class InvalidStepTransitionError(OnboardingError):
     pass
+
+
+class InvalidStepPayloadError(OnboardingError):
+    pass

@@ -12,6 +12,7 @@ from app.application.domain.exceptions import (
 from app.application.domain.onboarding import (
     ApplicationRecord,
     ApplicationStatus,
+    ApplicationStepRecord,
     AuditEvent,
     CheckRunRecord,
     CountryCode,
@@ -29,6 +30,9 @@ from app.application.services.application_progression_service import Application
 from app.application.services.audit_trail_service import AuditTrailService
 from app.application.services.decision_service import DecisionService
 from app.application.services.deterministic_check_service import DeterministicCheckService
+from app.application.services.step_payload_validation_service import (
+    StepPayloadValidationService,
+)
 
 _TParsedCode = TypeVar("_TParsedCode")
 
@@ -59,6 +63,7 @@ class OnboardingService:
         decision_service: DecisionEvaluatorPort | None = None,
         unit_of_work: UnitOfWorkPort | None = None,
         progression_service: ApplicationProgressionService | None = None,
+        step_payload_validation_service: StepPayloadValidationService | None = None,
     ) -> None:
         """
         Initialize the onboarding service with required dependencies.
@@ -75,6 +80,9 @@ class OnboardingService:
         self._decision_service = decision_service or DecisionService()
         self._unit_of_work = unit_of_work or NoOpUnitOfWork()
         self._progression_service = progression_service or ApplicationProgressionService()
+        self._step_payload_validation_service = (
+            step_payload_validation_service or StepPayloadValidationService()
+        )
         self._audit_service = AuditTrailService(audit_repository=self._repository)
 
     def start_application(self, country_code: str, party_type_code: str) -> ApplicationRecord:
@@ -174,6 +182,10 @@ class OnboardingService:
         """
         return self._repository.list_check_runs(application_id=application_id)
 
+    def get_application_steps(self, application_id: int) -> tuple[ApplicationStepRecord, ...]:
+        """Retrieve persisted step trail for an application."""
+        return self._repository.list_application_steps(application_id=application_id)
+
     def get_manual_review_case(self, application_id: int) -> ManualReviewCaseRecord | None:
         """
         Retrieve manual review case if one exists for the application.
@@ -259,6 +271,12 @@ class OnboardingService:
             now = datetime.now(UTC)
             current_step = self._progression_service.get_current_step(application=application, flow=flow)
 
+            self._step_payload_validation_service.validate(
+                step_code=current_step.step_code,
+                payload=payload,
+                check_type_code=current_step.check_type_code,
+            )
+
             self._audit_service.step_completed(
                 application_id=application.application_id,
                 correlation_id=application.public_reference,
@@ -267,14 +285,18 @@ class OnboardingService:
             )
 
             if current_step.check_type_code is not None:
-                check_result = self._check_service.evaluate(payload=payload)
+                check_payload = payload
+                if current_step.check_type_code.value == "CREDIT":
+                    check_payload = self._apply_credit_affordability_rules(payload)
+
+                check_result = self._check_service.evaluate(payload=check_payload)
                 check_run = CheckRunRecord(
                     check_run_id=self._repository.next_check_run_id(),
                     application_id=application.application_id,
                     check_type_code=current_step.check_type_code,
                     check_business_result_code=check_result,
                     correlation_id=application.public_reference,
-                    input_fingerprint=payload.get("scenario", "PASS").upper(),
+                    input_fingerprint=self._build_input_fingerprint(check_payload),
                     created_at=now,
                 )
                 self._repository.append_check_run(check_run)
@@ -304,6 +326,31 @@ class OnboardingService:
             self._repository.update_application(application)
 
         return application
+
+    def _apply_credit_affordability_rules(self, payload: dict[str, str]) -> dict[str, str]:
+        monthly_income = int(payload.get("monthly_income", "0"))
+        monthly_expenses = int(payload.get("monthly_expenses", "0"))
+        disposable_income = monthly_income - monthly_expenses
+
+        scenario = "PASS"
+        if disposable_income < 0:
+            scenario = "FAIL"
+        elif disposable_income < 10000:
+            scenario = "MANUAL_REVIEW"
+
+        return {
+            **payload,
+            "scenario": scenario,
+            "affordability_disposable_income": str(disposable_income),
+        }
+
+    def _build_input_fingerprint(self, payload: dict[str, str]) -> str:
+        scenario = payload.get("scenario", "PASS").upper()
+        monthly_income = payload.get("monthly_income")
+        monthly_expenses = payload.get("monthly_expenses")
+        if monthly_income is not None and monthly_expenses is not None:
+            return f"{scenario}:{monthly_income}:{monthly_expenses}"
+        return scenario
 
     def _finalize_application_decision(
         self,
@@ -407,6 +454,7 @@ class OnboardingService:
         Raises:
             ApplicationNotFoundError: Application not found
             OnboardingFlowNotFoundError: Flow not found for application
+            InvalidStepPayloadError: Payload failed step-specific validation
         """
         application = self._repository.get_application(application_id=application_id)
         if application is None:

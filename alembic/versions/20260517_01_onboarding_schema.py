@@ -65,12 +65,7 @@ def upgrade() -> None:
     op.create_table(
         "onboarding_flow",
         sa.Column("flow_id", sa.BigInteger(), primary_key=True, autoincrement=True),
-        sa.Column(
-            "country_code",
-            sa.String(length=2),
-            sa.ForeignKey("country.country_code"),
-            nullable=False,
-        ),
+        sa.Column("country_code", sa.String(length=2), sa.ForeignKey("country.country_code"), nullable=False),
         sa.Column(
             "party_type_code",
             sa.String(length=16),
@@ -86,9 +81,7 @@ def upgrade() -> None:
     op.create_table(
         "onboarding_step",
         sa.Column("step_id", sa.BigInteger(), primary_key=True, autoincrement=True),
-        sa.Column(
-            "flow_id", sa.BigInteger(), sa.ForeignKey("onboarding_flow.flow_id"), nullable=False
-        ),
+        sa.Column("flow_id", sa.BigInteger(), sa.ForeignKey("onboarding_flow.flow_id"), nullable=False),
         sa.Column("step_code", sa.String(length=32), nullable=False),
         sa.Column("step_title", sa.String(length=120), nullable=False),
         sa.Column("step_order", sa.Integer(), nullable=False),
@@ -106,59 +99,33 @@ def upgrade() -> None:
         "application",
         sa.Column("application_id", sa.BigInteger(), primary_key=True, autoincrement=True),
         sa.Column("public_reference", sa.String(length=40), nullable=False, unique=True),
-        sa.Column(
-            "country_code",
-            sa.String(length=2),
-            sa.ForeignKey("country.country_code"),
-            nullable=False,
-        ),
+        sa.Column("country_code", sa.String(length=2), sa.ForeignKey("country.country_code"), nullable=False),
         sa.Column(
             "party_type_code",
             sa.String(length=16),
             sa.ForeignKey("party_type.party_type_code"),
             nullable=False,
         ),
-        sa.Column(
-            "flow_id", sa.BigInteger(), sa.ForeignKey("onboarding_flow.flow_id"), nullable=False
-        ),
+        sa.Column("flow_id", sa.BigInteger(), sa.ForeignKey("onboarding_flow.flow_id"), nullable=False),
         sa.Column(
             "application_status_code",
             sa.String(length=24),
             sa.ForeignKey("application_status.application_status_code"),
             nullable=False,
         ),
-        sa.Column(
-            "current_step_id",
-            sa.BigInteger(),
-            sa.ForeignKey("onboarding_step.step_id"),
-            nullable=True,
-        ),
-        sa.Column(
-            "created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()
-        ),
+        sa.Column("current_step_id", sa.BigInteger(), sa.ForeignKey("onboarding_step.step_id"), nullable=True),
+        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
         sa.Column("submitted_at", sa.DateTime(timezone=True), nullable=True),
     )
 
     op.create_table(
         "check_run",
         sa.Column("check_run_id", sa.BigInteger(), primary_key=True, autoincrement=True),
-        sa.Column(
-            "application_id",
-            sa.BigInteger(),
-            sa.ForeignKey("application.application_id"),
-            nullable=False,
-        ),
-        sa.Column(
-            "check_type_code",
-            sa.String(length=24),
-            sa.ForeignKey("check_type.check_type_code"),
-            nullable=False,
-        ),
+        sa.Column("application_id", sa.BigInteger(), sa.ForeignKey("application.application_id"), nullable=False),
+        sa.Column("check_type_code", sa.String(length=24), sa.ForeignKey("check_type.check_type_code"), nullable=False),
         sa.Column("correlation_id", sa.String(length=80), nullable=False),
         sa.Column("input_fingerprint", sa.String(length=128), nullable=False),
-        sa.Column(
-            "created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()
-        ),
+        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
         sa.Column(
             "check_business_result_code",
             sa.String(length=24),
@@ -178,29 +145,17 @@ def upgrade() -> None:
             unique=True,
         ),
         sa.Column("review_status", sa.String(length=24), nullable=False),
-        sa.Column(
-            "opened_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()
-        ),
+        sa.Column("opened_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
     )
 
     op.create_table(
         "audit_event",
         sa.Column("audit_event_id", sa.BigInteger(), primary_key=True, autoincrement=True),
-        sa.Column(
-            "application_id",
-            sa.BigInteger(),
-            sa.ForeignKey("application.application_id"),
-            nullable=False,
-        ),
+        sa.Column("application_id", sa.BigInteger(), sa.ForeignKey("application.application_id"), nullable=False),
         sa.Column("actor_type", sa.String(length=24), nullable=False),
         sa.Column("actor_id", sa.String(length=120), nullable=False),
         sa.Column("event_type", sa.String(length=48), nullable=False),
-        sa.Column(
-            "event_timestamp",
-            sa.DateTime(timezone=True),
-            nullable=False,
-            server_default=sa.func.now(),
-        ),
+        sa.Column("event_timestamp", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
         sa.Column("correlation_id", sa.String(length=80), nullable=False),
         sa.Column("metadata_json", sa.JSON(), nullable=True),
     )
@@ -242,19 +197,10 @@ def _seed_lookup_tables() -> None:
             sa.column("description", sa.String),
         ),
         [
-            {
-                "application_status_code": "DRAFT",
-                "description": "Application started but not submitted",
-            },
-            {
-                "application_status_code": "IN_PROGRESS",
-                "description": "Application is being processed",
-            },
+            {"application_status_code": "DRAFT", "description": "Application started but not submitted"},
+            {"application_status_code": "IN_PROGRESS", "description": "Application is being processed"},
             {"application_status_code": "SUBMITTED", "description": "Application submitted"},
-            {
-                "application_status_code": "UNDER_REVIEW",
-                "description": "Application under manual review",
-            },
+            {"application_status_code": "UNDER_REVIEW", "description": "Application under manual review"},
             {"application_status_code": "APPROVED", "description": "Application approved"},
             {"application_status_code": "REJECTED", "description": "Application rejected"},
             {"application_status_code": "CANCELLED", "description": "Application cancelled"},
@@ -299,10 +245,7 @@ def _seed_lookup_tables() -> None:
         ),
         [
             {"check_business_result_code": "PASS", "description": "Automated pass"},
-            {
-                "check_business_result_code": "MANUAL_REVIEW",
-                "description": "Requires manual review",
-            },
+            {"check_business_result_code": "MANUAL_REVIEW", "description": "Requires manual review"},
             {"check_business_result_code": "FAIL", "description": "Automated fail"},
         ],
     )
@@ -340,46 +283,144 @@ def _seed_onboarding_flows() -> None:
             ).bindparams(country=country, flow_name=f"{country} BUSINESS Onboarding")
         )
 
-        op.execute(
-            sa.text(
-                """
-                INSERT INTO onboarding_step (flow_id, step_code, step_title, step_order)
-                SELECT flow_id, 'COLLECT_PRIVATE_PROFILE', 'Collect applicant profile', 1
-                FROM onboarding_flow
-                WHERE country_code = :country AND party_type_code = 'PRIVATE' AND flow_version = 1
-                """
-            ).bindparams(country=country)
-        )
-        op.execute(
-            sa.text(
-                """
-                INSERT INTO onboarding_step (flow_id, step_code, step_title, step_order, check_type_code)
-                SELECT flow_id, 'RUN_KYC', 'Run KYC check', 2, 'KYC'
-                FROM onboarding_flow
-                WHERE country_code = :country AND party_type_code = 'PRIVATE' AND flow_version = 1
-                """
-            ).bindparams(country=country)
-        )
-        op.execute(
-            sa.text(
-                """
-                INSERT INTO onboarding_step (flow_id, step_code, step_title, step_order, check_type_code)
-                SELECT flow_id, 'RUN_SANCTIONS', 'Run sanctions screening', 3, 'SANCTIONS'
-                FROM onboarding_flow
-                WHERE country_code = :country AND party_type_code = 'PRIVATE' AND flow_version = 1
-                """
-            ).bindparams(country=country)
-        )
-        op.execute(
-            sa.text(
-                """
-                INSERT INTO onboarding_step (flow_id, step_code, step_title, step_order)
-                SELECT flow_id, 'DECISION', 'Apply decision rules', 4
-                FROM onboarding_flow
-                WHERE country_code = :country AND party_type_code = 'PRIVATE' AND flow_version = 1
-                """
-            ).bindparams(country=country)
-        )
+        if country == "SE":
+            private_steps = [
+                ("COLLECT_SE_IDENTITY", "Collect personal identity number", 1, None),
+                (
+                    "RUN_SE_BANKID",
+                    "Run BankID-style identity verification",
+                    2,
+                    "KYC",
+                ),
+                (
+                    "CONFIRM_SE_CONTACT",
+                    "Confirm contact details and address",
+                    3,
+                    None,
+                ),
+                (
+                    "CAPTURE_SE_CONSENT",
+                    "Capture consent, PEP/sanctions, and tax residency",
+                    4,
+                    "SANCTIONS",
+                ),
+                (
+                    "COLLECT_SE_AFFORD",
+                    "Collect employment, income, and affordability inputs",
+                    5,
+                    None,
+                ),
+                (
+                    "RUN_SE_CREDIT",
+                    "Run credit bureau and affordability decision",
+                    6,
+                    "CREDIT",
+                ),
+                (
+                    "REVIEW_SE_SUBMIT",
+                    "Review summary, accept terms, and submit",
+                    7,
+                    None,
+                ),
+            ]
+        elif country == "ES":
+            private_steps = [
+                ("COLLECT_ES_DNI_NIE", "Collect DNI/NIE", 1, None),
+                (
+                    "RUN_ES_IDENTITY",
+                    "Run Clave/DNIe document verification",
+                    2,
+                    "KYC",
+                ),
+                (
+                    "CONFIRM_ES_CONTACT",
+                    "Confirm contact details, province, and address",
+                    3,
+                    None,
+                ),
+                (
+                    "CAPTURE_ES_CONSENT",
+                    "Capture consent and PEP/sanctions declaration",
+                    4,
+                    "SANCTIONS",
+                ),
+                (
+                    "COLLECT_ES_AFFORD",
+                    "Collect employment, income, housing costs, and dependants",
+                    5,
+                    None,
+                ),
+                (
+                    "RUN_ES_CREDIT",
+                    "Run credit bureau and affordability decision",
+                    6,
+                    "CREDIT",
+                ),
+                (
+                    "REVIEW_ES_SUBMIT",
+                    "Review summary, accept terms, and submit",
+                    7,
+                    None,
+                ),
+            ]
+        else:
+            private_steps = [
+                ("COLLECT_PL_PESEL", "Collect PESEL", 1, None),
+                (
+                    "RUN_PL_EID",
+                    "Run eID-style identity verification",
+                    2,
+                    "KYC",
+                ),
+                (
+                    "CONFIRM_PL_CONTACT",
+                    "Confirm contact details and registered address",
+                    3,
+                    None,
+                ),
+                (
+                    "CAPTURE_PL_CONSENT",
+                    "Capture consent and PEP/sanctions declaration",
+                    4,
+                    "SANCTIONS",
+                ),
+                (
+                    "COLLECT_PL_AFFORD",
+                    "Collect employment, income, and affordability inputs",
+                    5,
+                    None,
+                ),
+                (
+                    "RUN_PL_BIK",
+                    "Run BIK-style credit bureau and affordability decision",
+                    6,
+                    "CREDIT",
+                ),
+                (
+                    "REVIEW_PL_SUBMIT",
+                    "Review summary, accept terms, and submit",
+                    7,
+                    None,
+                ),
+            ]
+
+        for step_code, step_title, step_order, check_type_code in private_steps:
+            op.execute(
+                sa.text(
+                    """
+                    INSERT INTO onboarding_step (flow_id, step_code, step_title, step_order, check_type_code)
+                    SELECT flow_id, :step_code, :step_title, :step_order, :check_type_code
+                    FROM onboarding_flow
+                    WHERE country_code = :country AND party_type_code = 'PRIVATE' AND flow_version = 1
+                    """
+                ).bindparams(
+                    country=country,
+                    step_code=step_code,
+                    step_title=step_title,
+                    step_order=step_order,
+                    check_type_code=check_type_code,
+                )
+            )
 
         op.execute(
             sa.text(

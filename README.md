@@ -65,21 +65,35 @@ Both the SQLAlchemy adapter (`infrastructure/repository/sqlalchemy_repository.py
 - Deduplication was critical: SQLAlchemy and in-memory adapters previously duplicated ID sequencing logic, which is now centralized in the repository implementations themselves.
 - This pattern is well-suited for request-response workflows (onboarding flows) where the repository acts as the gateway to application state.
 
-## Quick Start
+## Quick Start (Local Python)
 
 1. Create and activate a virtual environment.
-2. Install dependencies from `requirements-dev.txt`.
-3. Install Node dependencies: `npm install`.
-4. Build frontend styles: `npm run build:css`.
-5. Copy `.env.example` to `.env` and adjust values.
-6. Run migrations: `alembic upgrade head`.
-7. Start app: `uvicorn app.main:app --reload`.
+2. Install Python dependencies:
+    - `pip install -r requirements-dev.txt`
+3. Install Node dependencies:
+    - `npm install`
+4. Build frontend styles:
+    - `npm run build:css`
+5. Copy environment file:
+    - `cp .env.example .env` (Linux/macOS)
+    - `copy .env.example .env` (Windows)
+6. Ensure PostgreSQL is running and configured from `.env`.
+7. Run database migrations:
+    - `alembic upgrade head`
+8. Start the app:
+    - `uvicorn app.main:app --reload`
 
-Open `http://127.0.0.1:8000`.
+Default local URLs:
+
+- App home: `http://127.0.0.1:8000/`
+- Onboarding start page: `http://127.0.0.1:8000/onboarding`
+- Swagger UI: `http://127.0.0.1:8000/docs`
+- ReDoc: `http://127.0.0.1:8000/redoc`
+- OpenAPI JSON: `http://127.0.0.1:8000/openapi.json`
 
 ## Docker Local Run
 
-- Start stack: `npm run docker:up`
+- Build and start stack: `npm run docker:up`
 - Stop stack: `npm run docker:down`
 - Follow app logs: `npm run docker:logs`
 
@@ -88,7 +102,29 @@ Default host ports are conflict-safe:
 - Web app: `http://127.0.0.1:8001`
 - PostgreSQL: `127.0.0.1:5433`
 
+Docker URLs:
+
+- App home: `http://127.0.0.1:8001/`
+- Onboarding start page: `http://127.0.0.1:8001/onboarding`
+- Swagger UI: `http://127.0.0.1:8001/docs`
+- ReDoc: `http://127.0.0.1:8001/redoc`
+- OpenAPI JSON: `http://127.0.0.1:8001/openapi.json`
+
 Inside Docker network, the app connects to Postgres via `DB_HOST=db` and `DB_PORT=5432`.
+
+## Useful API Endpoints
+
+- `POST /api/onboarding/start` - create a new onboarding application
+- `POST /api/onboarding/{application_id}/advance` - advance to next step with scenario (`PASS`, `MANUAL_REVIEW`, `FAIL`)
+- `GET /api/onboarding/{application_id}` - read current application status
+- `GET /api/onboarding/{application_id}/audit-events` - list audit trail events
+- `GET /api/onboarding/{application_id}/check-runs` - list executed check runs
+- `GET /api/onboarding/{application_id}/manual-review` - get manual review case if created
+
+## Route Behavior
+
+- Invalid UI routes render a custom 404 page.
+- Invalid API routes return JSON with a `404` status and `{"detail": "Not Found"}`.
 
 ## Testing
 

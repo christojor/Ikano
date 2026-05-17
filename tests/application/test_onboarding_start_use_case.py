@@ -8,6 +8,26 @@ from app.infrastructure.repositories.in_memory_onboarding_repository import (
 )
 
 
+def _payload_for_step(step_code: str, scenario: str = "PASS") -> dict[str, str]:
+    payload = {"scenario": scenario}
+
+    if step_code in {"COLLECT_SE_IDENTITY", "COLLECT_ES_DNI_NIE", "COLLECT_PL_PESEL"}:
+        payload["identity_number"] = "44051401458" if step_code == "COLLECT_PL_PESEL" else "199001019999"
+    elif step_code in {"CONFIRM_SE_CONTACT", "CONFIRM_ES_CONTACT", "CONFIRM_PL_CONTACT"}:
+        payload["email"] = "applicant@example.com"
+    elif step_code in {"COLLECT_SE_AFFORD", "COLLECT_ES_AFFORD", "COLLECT_PL_AFFORD"}:
+        payload["monthly_income"] = "45000"
+    elif step_code in {"RUN_SE_CREDIT", "RUN_ES_CREDIT", "RUN_PL_BIK"}:
+        payload["monthly_income"] = "45000"
+        payload["monthly_expenses"] = "15000"
+    elif step_code == "COLLECT_BUSINESS_PROFILE":
+        payload["organization_number"] = "556677-8899"
+    elif step_code in {"REVIEW_SE_SUBMIT", "REVIEW_ES_SUBMIT", "REVIEW_PL_SUBMIT"}:
+        payload["accept_terms"] = "true"
+
+    return payload
+
+
 @pytest.fixture
 def onboarding_service() -> OnboardingService:
     repository = InMemoryOnboardingRepository()
@@ -58,22 +78,23 @@ def test_advance_step_moves_to_next_step(onboarding_service: OnboardingService) 
 
     updated = onboarding_service.advance_step(
         application_id=application.application_id,
-        payload={"scenario": "PASS"},
+        payload=_payload_for_step(application.current_step_code, "PASS"),
     )
 
     assert updated.current_step_order == 2
-    assert updated.current_step_code == "RUN_KYC"
+    assert updated.current_step_code == "RUN_SE_BANKID"
     assert updated.status == ApplicationStatus.IN_PROGRESS
 
 
 def test_advance_step_completes_happy_path_with_approval(onboarding_service: OnboardingService) -> None:
     application = onboarding_service.start_application(country_code="SE", party_type_code="PRIVATE")
+    flow = onboarding_service.get_flow_for_application(application.application_id)
 
     updated = application
-    for _ in range(4):
+    for _ in range(len(flow.steps)):
         updated = onboarding_service.advance_step(
             application_id=updated.application_id,
-            payload={"scenario": "PASS"},
+            payload=_payload_for_step(updated.current_step_code, "PASS"),
         )
 
     assert updated.status == ApplicationStatus.APPROVED
@@ -84,12 +105,13 @@ def test_manual_review_outcome_creates_manual_review_case(
     onboarding_service: OnboardingService,
 ) -> None:
     application = onboarding_service.start_application(country_code="ES", party_type_code="PRIVATE")
+    flow = onboarding_service.get_flow_for_application(application.application_id)
 
     updated = application
-    for _ in range(4):
+    for _ in range(len(flow.steps)):
         updated = onboarding_service.advance_step(
             application_id=updated.application_id,
-            payload={"scenario": "MANUAL_REVIEW"},
+            payload=_payload_for_step(updated.current_step_code, "MANUAL_REVIEW"),
         )
 
     case = onboarding_service.get_manual_review_case(application_id=updated.application_id)
@@ -105,12 +127,13 @@ def test_fail_outcome_rejects_application_and_does_not_open_manual_case(
     onboarding_service: OnboardingService,
 ) -> None:
     application = onboarding_service.start_application(country_code="PL", party_type_code="PRIVATE")
+    flow = onboarding_service.get_flow_for_application(application.application_id)
 
     updated = application
-    for _ in range(4):
+    for _ in range(len(flow.steps)):
         updated = onboarding_service.advance_step(
             application_id=updated.application_id,
-            payload={"scenario": "FAIL"},
+            payload=_payload_for_step(updated.current_step_code, "FAIL"),
         )
 
     case = onboarding_service.get_manual_review_case(application_id=updated.application_id)
@@ -124,15 +147,16 @@ def test_check_runs_are_deterministic_from_payload_scenario(
 ) -> None:
     app_manual = onboarding_service.start_application(country_code="SE", party_type_code="PRIVATE")
     app_pass = onboarding_service.start_application(country_code="SE", party_type_code="PRIVATE")
+    flow = onboarding_service.get_flow_for_application(app_manual.application_id)
 
-    for _ in range(4):
+    for _ in range(len(flow.steps)):
         app_manual = onboarding_service.advance_step(
             application_id=app_manual.application_id,
-            payload={"scenario": "MANUAL_REVIEW"},
+            payload=_payload_for_step(app_manual.current_step_code, "MANUAL_REVIEW"),
         )
         app_pass = onboarding_service.advance_step(
             application_id=app_pass.application_id,
-            payload={"scenario": "PASS"},
+            payload=_payload_for_step(app_pass.current_step_code, "PASS"),
         )
 
     check_runs_manual = onboarding_service.get_check_runs(application_id=app_manual.application_id)
@@ -140,5 +164,36 @@ def test_check_runs_are_deterministic_from_payload_scenario(
 
     assert check_runs_manual
     assert check_runs_pass
-    assert all(check.check_business_result_code == "MANUAL_REVIEW" for check in check_runs_manual)
+    assert check_runs_manual[0].check_business_result_code == "MANUAL_REVIEW"
     assert all(check.check_business_result_code == "PASS" for check in check_runs_pass)
+
+
+def test_credit_step_uses_affordability_inputs_for_decision(
+    onboarding_service: OnboardingService,
+) -> None:
+    application = onboarding_service.start_application(country_code="SE", party_type_code="PRIVATE")
+
+    updated = application
+    for _ in range(5):
+        updated = onboarding_service.advance_step(
+            application_id=updated.application_id,
+            payload=_payload_for_step(updated.current_step_code, "PASS"),
+        )
+
+    # At RUN_SE_CREDIT: force negative disposable income => FAIL
+    updated = onboarding_service.advance_step(
+        application_id=updated.application_id,
+        payload={
+            "scenario": "PASS",
+            "monthly_income": "1000",
+            "monthly_expenses": "2500",
+        },
+    )
+
+    # Final review step then decision
+    updated = onboarding_service.advance_step(
+        application_id=updated.application_id,
+        payload={"scenario": "PASS", "accept_terms": "true"},
+    )
+
+    assert updated.status == ApplicationStatus.REJECTED

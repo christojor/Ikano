@@ -1,8 +1,12 @@
-from fastapi import FastAPI
+from typing import cast
+
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.infrastructure.config import settings
-from app.presentation.web.routes import STATIC_DIR
+from app.presentation.web.routes import STATIC_DIR, templates
 from app.presentation.web.routes import router as web_router
 
 # OpenAPI tags for Swagger UI organization
@@ -51,6 +55,23 @@ def create_app() -> FastAPI:
         openapi_tags=OPENAPI_TAGS,
         debug=settings.debug,
     )
+
+    @app.exception_handler(StarletteHTTPException)
+    async def not_found_handler(request: Request, exc: StarletteHTTPException) -> Response:
+        if exc.status_code == 404 and not request.url.path.startswith("/api"):
+            return cast(
+                Response,
+                templates.TemplateResponse(
+                    request,
+                    "not_found.html",
+                    {"path": request.url.path},
+                    status_code=404,
+                ),
+            )
+
+        detail = exc.detail if isinstance(exc.detail, str) else "Not Found"
+        return JSONResponse(status_code=exc.status_code, content={"detail": detail})
+
     app.include_router(web_router)
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
     return app
