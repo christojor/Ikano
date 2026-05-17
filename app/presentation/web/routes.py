@@ -10,9 +10,7 @@ from app.presentation.dependencies import get_health_service
 
 router = APIRouter()
 
-templates = Jinja2Templates(
-    directory=str(Path(__file__).resolve().parent / "templates")
-)
+templates = Jinja2Templates(directory=str(Path(__file__).resolve().parent / "templates"))
 
 
 @router.get("/", response_class=HTMLResponse)

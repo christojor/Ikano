@@ -61,3 +61,21 @@ Security-minded defaults included:
 - Concurrency control to cancel superseded runs
 - Dependency vulnerability scanning (`pip-audit`)
 - Static security analysis (`bandit`)
+
+## CI/CD Flow Exception (Solo Development)
+
+This repository is currently maintained by one developer for a work-sample context.
+For this reason, commits may be pushed directly to `main`.
+
+In a live team setup, this direct-to-main approach would be replaced with a formal Git strategy
+and protected delivery workflow, including at minimum:
+
+- Branching strategy (for example, trunk-based with short-lived feature branches)
+- Protected `main` branch (no direct pushes)
+- Pull request requirement for all changes
+- Required status checks before merge (lint, type checks, tests, security scans)
+- Minimum reviewer approvals and code owner review for sensitive areas
+- Merge controls (for example, linear history and stale approval dismissal on new commits)
+
+This exception is intentional for delivery speed in a single-developer exercise and should not be
+treated as a production-team governance model.
