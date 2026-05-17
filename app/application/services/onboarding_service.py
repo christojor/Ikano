@@ -8,9 +8,9 @@ from app.application.domain.exceptions import (
     UnsupportedPartyTypeCodeError,
 )
 from app.application.domain.onboarding import (
-    AuditEvent,
     ApplicationRecord,
     ApplicationStatus,
+    AuditEvent,
     CheckRunRecord,
     CountryCode,
     DecisionOutcomeCode,
@@ -61,7 +61,9 @@ class OnboardingService:
         party_type = self._parse_party_type_code(party_type_code)
 
         with self._unit_of_work.transaction():
-            flow = self._flow_query.get_active_flow(country_code=country, party_type_code=party_type)
+            flow = self._flow_query.get_active_flow(
+                country_code=country, party_type_code=party_type
+            )
             if flow is None:
                 raise NoActiveOnboardingFlowError("No active onboarding flow found")
 
@@ -110,7 +112,9 @@ class OnboardingService:
 
     def advance_step(self, application_id: int, payload: dict[str, str]) -> ApplicationRecord:
         with self._unit_of_work.transaction():
-            application = self._application_repository.get_application(application_id=application_id)
+            application = self._application_repository.get_application(
+                application_id=application_id
+            )
             if application is None:
                 raise ApplicationNotFoundError("Application not found")
 
@@ -119,7 +123,9 @@ class OnboardingService:
                 raise OnboardingFlowNotFoundError("Onboarding flow not found")
 
             now = datetime.now(UTC)
-            current_step = self._progression_service.get_current_step(application=application, flow=flow)
+            current_step = self._progression_service.get_current_step(
+                application=application, flow=flow
+            )
 
             self._audit_service.step_completed(
                 application_id=application.application_id,

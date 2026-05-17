@@ -1,9 +1,11 @@
-from app.application.domain.onboarding import ApplicationRecord, OnboardingFlow, OnboardingStep
 from app.application.domain.exceptions import InvalidStepTransitionError
+from app.application.domain.onboarding import ApplicationRecord, OnboardingFlow, OnboardingStep
 
 
 class ApplicationProgressionService:
-    def get_current_step(self, application: ApplicationRecord, flow: OnboardingFlow) -> OnboardingStep:
+    def get_current_step(
+        self, application: ApplicationRecord, flow: OnboardingFlow
+    ) -> OnboardingStep:
         current_index = application.current_step_order - 1
         if current_index < 0 or current_index >= len(flow.steps):
             raise InvalidStepTransitionError("Current step is out of flow bounds")

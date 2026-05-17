@@ -82,6 +82,8 @@ def test_repository_contract_supports_audit_check_and_manual_review_records() ->
         )
     )
 
-    assert repo.list_audit_events(application_id)[0].event_type == AuditEventType.APPLICATION_STARTED
+    assert (
+        repo.list_audit_events(application_id)[0].event_type == AuditEventType.APPLICATION_STARTED
+    )
     assert repo.list_check_runs(application_id)[0].check_type_code == CheckTypeCode.KYC
     assert repo.get_manual_review_case(application_id) is not None

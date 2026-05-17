@@ -4,5 +4,4 @@ from app.application.domain.onboarding import CheckRunRecord, DecisionOutcomeCod
 
 
 class DecisionEvaluatorPort(Protocol):
-    def decide(self, check_runs: tuple[CheckRunRecord, ...]) -> DecisionOutcomeCode:
-        ...
+    def decide(self, check_runs: tuple[CheckRunRecord, ...]) -> DecisionOutcomeCode: ...

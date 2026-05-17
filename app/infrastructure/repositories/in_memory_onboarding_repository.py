@@ -1,8 +1,8 @@
 from app.application.domain.onboarding import (
     ApplicationRecord,
     AuditEvent,
-    CheckTypeCode,
     CheckRunRecord,
+    CheckTypeCode,
     CountryCode,
     ManualReviewCaseRecord,
     OnboardingFlow,
@@ -33,7 +33,9 @@ class InMemoryOnboardingRepository:
                 party_type_code=PartyTypeCode.PRIVATE,
                 steps=(
                     OnboardingStep("COLLECT_PRIVATE_PROFILE", "Collect applicant profile", 1),
-                    OnboardingStep("RUN_KYC", "Run KYC check", 2, check_type_code=CheckTypeCode.KYC),
+                    OnboardingStep(
+                        "RUN_KYC", "Run KYC check", 2, check_type_code=CheckTypeCode.KYC
+                    ),
                     OnboardingStep(
                         "RUN_SANCTIONS",
                         "Run sanctions screening",
@@ -51,7 +53,9 @@ class InMemoryOnboardingRepository:
                 party_type_code=PartyTypeCode.BUSINESS,
                 steps=(
                     OnboardingStep("COLLECT_BUSINESS_PROFILE", "Collect business profile", 1),
-                    OnboardingStep("RUN_KYB", "Run KYB check", 2, check_type_code=CheckTypeCode.KYB),
+                    OnboardingStep(
+                        "RUN_KYB", "Run KYB check", 2, check_type_code=CheckTypeCode.KYB
+                    ),
                     OnboardingStep(
                         "RUN_REGISTRY",
                         "Run business registry check",
@@ -63,7 +67,9 @@ class InMemoryOnboardingRepository:
             )
         return flows
 
-    def get_active_flow(self, country_code: CountryCode, party_type_code: PartyTypeCode) -> OnboardingFlow | None:
+    def get_active_flow(
+        self, country_code: CountryCode, party_type_code: PartyTypeCode
+    ) -> OnboardingFlow | None:
         return self._flows.get((country_code, party_type_code))
 
     def get_flow_by_id(self, flow_id: int) -> OnboardingFlow | None:

@@ -46,7 +46,9 @@ class ApplicationResponse(BaseModel):
 
 
 def _to_application_response(application: ApplicationRecord) -> ApplicationResponse:
-    submitted_at = application.submitted_at.isoformat() if application.submitted_at is not None else None
+    submitted_at = (
+        application.submitted_at.isoformat() if application.submitted_at is not None else None
+    )
     return ApplicationResponse(
         application_id=application.application_id,
         public_reference=application.public_reference,
@@ -81,7 +83,11 @@ def start_onboarding(
             country_code=payload.country_code,
             party_type_code=payload.party_type_code,
         )
-    except (UnsupportedCountryCodeError, UnsupportedPartyTypeCodeError, NoActiveOnboardingFlowError) as error:
+    except (
+        UnsupportedCountryCodeError,
+        UnsupportedPartyTypeCodeError,
+        NoActiveOnboardingFlowError,
+    ) as error:
         raise HTTPException(status_code=400, detail=str(error)) from error
     return _to_application_response(application)
 

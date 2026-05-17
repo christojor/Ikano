@@ -70,7 +70,9 @@ def test_advance_step_moves_to_next_step(onboarding_service: OnboardingService) 
     assert updated.status == ApplicationStatus.IN_PROGRESS
 
 
-def test_advance_step_completes_happy_path_with_approval(onboarding_service: OnboardingService) -> None:
+def test_advance_step_completes_happy_path_with_approval(
+    onboarding_service: OnboardingService,
+) -> None:
     application = onboarding_service.start_application(country_code="SE", party_type_code="PRIVATE")
 
     updated = application

@@ -3,8 +3,7 @@ from typing import Literal, Protocol
 
 
 class UnitOfWorkPort(Protocol):
-    def transaction(self) -> AbstractContextManager[None]:
-        ...
+    def transaction(self) -> AbstractContextManager[None]: ...
 
 
 class NoOpUnitOfWork:
