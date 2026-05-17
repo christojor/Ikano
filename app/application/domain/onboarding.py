@@ -41,7 +41,7 @@ class CheckTypeCode(StrEnum):
 
 
 class CheckBusinessResultCode(StrEnum):
-    PASS = "PASS"
+    PASS = "PASS"  # nosec B105
     MANUAL_REVIEW = "MANUAL_REVIEW"
     FAIL = "FAIL"
 
@@ -102,6 +102,17 @@ class ApplicationRecord:
     status: ApplicationStatus
     created_at: datetime
     submitted_at: datetime | None = None
+
+
+@dataclass(slots=True, frozen=True)
+class ApplicationStepRecord:
+    application_step_id: int
+    application_id: int
+    step_code: str
+    step_order: int
+    step_status_code: StepStatusCode
+    payload_snapshot: dict[str, str]
+    completed_at: datetime
 
 
 @dataclass(slots=True, frozen=True)
