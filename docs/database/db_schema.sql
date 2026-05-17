@@ -148,7 +148,8 @@ CREATE TABLE application_step_state (
     completed_at TIMESTAMPTZ NULL,
     payload_json JSONB NULL,
     error_code VARCHAR(64) NULL,
-    PRIMARY KEY (application_id, step_id)
+    PRIMARY KEY (application_id, step_id),
+    CONSTRAINT chk_step_completed_after_started CHECK (completed_at IS NULL OR completed_at >= started_at)
 );
 
 -- External checks (KYC, KYB, sanctions, credit, registry)
@@ -174,7 +175,9 @@ CREATE TABLE check_run (
     completed_at TIMESTAMPTZ NULL,
     technical_status VARCHAR(24) NOT NULL CHECK (technical_status IN ('PENDING', 'IN_FLIGHT', 'COMPLETED', 'FAILED', 'ERROR')),
     check_business_result_code VARCHAR(24) NULL REFERENCES check_business_result(check_business_result_code),
-    response_summary_json JSONB NULL
+    response_summary_json JSONB NULL,
+    CONSTRAINT chk_check_completed_after_requested CHECK (completed_at IS NULL OR completed_at >= requested_at),
+    UNIQUE (application_id, check_type_code, input_fingerprint)
 );
 
 -- Decisioning and explainability
@@ -228,7 +231,8 @@ CREATE TABLE manual_review_case (
     deleted_at TIMESTAMPTZ NULL,
     opened_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     closed_at TIMESTAMPTZ NULL,
-    resolution_notes VARCHAR(1000) NULL
+    resolution_notes VARCHAR(1000) NULL,
+    CONSTRAINT chk_closed_after_opened CHECK (closed_at IS NULL OR closed_at >= opened_at)
 );
 
 -- Immutable audit trail
@@ -298,11 +302,28 @@ CREATE TRIGGER trg_manual_review_case_updated_at
 BEFORE UPDATE ON manual_review_case
 FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
+-- Prevent modification or deletion of audit events (immutable audit trail)
+CREATE OR REPLACE FUNCTION prevent_audit_event_modification()
+RETURNS TRIGGER AS $$
+BEGIN
+    RAISE EXCEPTION 'audit_event rows are immutable: modification and deletion are not permitted';
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_audit_event_immutable
+BEFORE UPDATE OR DELETE ON audit_event
+FOR EACH ROW EXECUTE FUNCTION prevent_audit_event_modification();
+
 -- Indexes for expected read paths
 -- Partial indexes on active (non-deleted) records avoid scanning soft-deleted rows and are smaller.
 
 -- Flow routing: primary lookup path when selecting a flow for a country+party combination
 CREATE INDEX idx_flow_active_route
+    ON onboarding_flow(country_code, party_type_code)
+    WHERE is_active = TRUE AND deleted_at IS NULL;
+
+-- Enforce at most one active flow per (country, party_type) combination
+CREATE UNIQUE INDEX uq_flow_active_per_route
     ON onboarding_flow(country_code, party_type_code)
     WHERE is_active = TRUE AND deleted_at IS NULL;
 
@@ -355,6 +376,24 @@ CREATE INDEX idx_audit_event_app_type_ts
 CREATE INDEX idx_audit_event_correlation ON audit_event(correlation_id);
 
 -- Minimal seed data for required countries and parties
+INSERT INTO application_status (application_status_code, description)
+VALUES
+    ('DRAFT',        'Application started but not submitted'),
+    ('IN_PROGRESS',  'Application is being processed'),
+    ('SUBMITTED',    'Application submitted by applicant'),
+    ('UNDER_REVIEW', 'Application under manual review'),
+    ('APPROVED',     'Application approved'),
+    ('REJECTED',     'Application rejected'),
+    ('CANCELLED',    'Application cancelled by applicant');
+
+INSERT INTO step_status (step_status_code, description)
+VALUES
+    ('NOT_STARTED', 'Step has not been started'),
+    ('IN_PROGRESS', 'Step is currently active'),
+    ('COMPLETED',   'Step completed successfully'),
+    ('SKIPPED',     'Step not applicable and skipped'),
+    ('FAILED',      'Step completed with a failure result');
+
 INSERT INTO country (country_code, country_name)
 VALUES
     ('SE', 'Sweden'),
