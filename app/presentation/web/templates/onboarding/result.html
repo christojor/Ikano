@@ -43,7 +43,7 @@
         <tr>
           <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Decision Date</th>
           <td class="px-4 py-3 text-slate-800">
-            {% if application.submitted_at %}{{ application.submitted_at }}{% else %}—{% endif %}
+            {% if application.submitted_at %}{{ application.submitted_at.strftime("%Y-%m-%d %H:%M:%S") }}{% else %}—{% endif %}
           </td>
         </tr>
       </tbody>

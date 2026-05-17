@@ -4,7 +4,7 @@ test("home page renders welcome message and status", async ({ page }) => {
   await page.goto("/");
 
   await expect(page.getByRole("heading", { name: "Welcome to Ikano Bank" })).toBeVisible();
-  await expect(page.getByText("Service status: ok")).toBeVisible();
+  await expect(page.locator("header #service-status")).toContainText("Service status: ok");
   await expect(page.getByRole("link", { name: /Start Application/ })).toBeVisible();
 });
 

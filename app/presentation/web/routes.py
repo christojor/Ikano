@@ -16,14 +16,15 @@ from app.application.domain.exceptions import (
 )
 from app.application.domain.onboarding import (
     ApplicationRecord,
-    ApplicationStatus,
     ApplicationStepRecord,
+    ApplicationStatus,
     AuditEvent,
     CheckRunRecord,
     ManualReviewCaseRecord,
 )
 from app.application.services.health_service import HealthService
 from app.application.services.onboarding_service import OnboardingService
+from app.infrastructure.config import settings
 from app.presentation.dependencies import get_health_service, get_onboarding_service
 
 router = APIRouter()
@@ -323,6 +324,7 @@ def home(
     context = {
         "request": request,
         "status": health_service.get_status(),
+        "show_home_service_status": settings.show_home_service_status,
     }
     return templates.TemplateResponse(request, "index.html", context)
 

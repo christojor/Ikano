@@ -46,6 +46,11 @@ test("Sweden Private Individual happy path", async ({ page }) => {
   
   // Verify approved status
   await expect(page.getByRole("heading")).toContainText("Application Approved");
+
+  // Verify Decision Date is displayed as date + time (YYYY-MM-DD HH:MM:SS)
+  const decisionDateCell = page.locator("tr", { hasText: "Decision Date" }).locator("td");
+  const decisionDateTime = (await decisionDateCell.textContent()).trim();
+  expect(decisionDateTime).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/);
 });
 
 test("Sweden Business happy path", async ({ page }) => {
