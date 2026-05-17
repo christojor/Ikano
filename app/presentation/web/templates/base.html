@@ -3,11 +3,27 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{% block title %}Ikano Work Sample{% endblock %}</title>
+    <title>{% block title %}Ikano Bank - Onboarding{% endblock %}</title>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" />
     <link rel="stylesheet" href="{{ url_for('static', path='dist/styles.css') }}" />
   </head>
   <body>
+    <header class="sticky top-0 z-50 border-b border-slate-200 bg-white shadow-sm">
+      <div class="mx-auto flex items-center gap-4 px-4 py-3 max-w-4xl">
+        <a href="/" class="flex items-center gap-2 flex-shrink-0">
+          <svg class="h-10 w-auto" viewBox="0 0 200 100" xmlns="http://www.w3.org/2000/svg">
+            <rect width="200" height="100" fill="#EC0000"/>
+            <text x="10" y="35" font-family="Arial, sans-serif" font-size="28" font-weight="bold" fill="white" letter-spacing="2">IKANO</text>
+            <rect x="0" y="50" width="200" height="50" fill="#EC0000"/>
+            <text x="50" y="80" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="white" letter-spacing="3">BANK</text>
+          </svg>
+        </a>
+        <nav class="flex gap-6">
+          <a href="/" class="text-sm font-medium text-slate-700 hover:text-brand-500">Home</a>
+          <a href="/onboarding" class="text-sm font-medium text-slate-700 hover:text-brand-500">Onboarding</a>
+        </nav>
+      </div>
+    </header>
     <main class="app-shell">{% block content %}{% endblock %}</main>
   </body>
 </html>
