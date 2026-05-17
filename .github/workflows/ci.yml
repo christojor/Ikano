@@ -180,7 +180,7 @@ jobs:
           exit 1
 
       - name: Run Newman tests
-        run: npm run test:api
+        run: npm run test:api:ci
 
   build:
     name: Build and Push App Image
@@ -244,6 +244,7 @@ jobs:
       DB_NAME: ikano
       DB_USER: ikano
       DB_PASSWORD: ikano
+      E2E_BASE_URL: http://127.0.0.1:8000
 
     steps:
       - name: Checkout

@@ -24,6 +24,47 @@ Project follows clean architecture boundaries:
 - Infrastructure: Database, repositories, external integrations, config
 - Test: Unit and integration tests grouped by layer
 
+### Repository Design Decision: Composite Port Pattern
+
+The `OnboardingRepository` uses a composite port pattern: a single repository interface with a well-defined contract that is implemented by both SQLAlchemy and in-memory adapters. This design achieves the following benefits:
+
+**Dependency Inversion Principle (DIP):**
+- The application layer (`onboarding/use_cases.py`) depends only on the abstract `OnboardingRepository` interface, not on concrete database implementations.
+- Both SQLAlchemy and in-memory repositories implement the same interface, allowing either to be injected based on environment (production vs. tests).
+
+**Single Responsibility with Clear Boundaries:**
+- The repository owns two cohesive concerns: application lifecycle (start, advance, mark complete) and read access (fetch application details).
+- This avoids splitting onboarding data access across multiple fragmented interfaces.
+- Clients have one clear contract to implement and maintain.
+
+**Reduced Coupling:**
+- Prior design had 5 separate repository ports (OnboardingStartRepository, OnboardingAdvanceRepository, OnboardingFetchRepository, StepRepository, ApplicationSequenceRepository), creating cross-layer dependencies.
+- The composite port eliminates intermediate adapters and reduces method proliferation from 8+ scattered methods to 5 focused methods on a single interface.
+- Concrete implementations (SQLAlchemy and in-memory) no longer require multiple inheritance or parallel port implementations.
+
+**Practical Implementation:**
+The repository interface groups operations by use-case intent:
+```python
+class OnboardingRepository(Protocol):
+    def start(self, country_code: str, party_type_code: str) -> OnboardingApplicationStarted:
+        ...
+    def advance(self, app_id: str, scenario_code: str) -> OnboardingFlowAdvanced:
+        ...
+    def mark_complete(self, app_id: str) -> OnboardingFlowCompleted:
+        ...
+    def mark_rejected(self, app_id: str) -> OnboardingFlowRejected:
+        ...
+    def fetch_by_id(self, app_id: str) -> OnboardingApplicationDetails | None:
+        ...
+```
+
+Both the SQLAlchemy adapter (`infrastructure/repository/sqlalchemy_repository.py`) and in-memory adapter (`infrastructure/repository/inmemory_repository.py`) implement this single interface, each handling their specific persistence mechanism.
+
+**Lessons Learned:**
+- The composite port approach scales well for feature development: new onboarding operations extend the repository with new methods rather than creating new ports.
+- Deduplication was critical: SQLAlchemy and in-memory adapters previously duplicated ID sequencing logic, which is now centralized in the repository implementations themselves.
+- This pattern is well-suited for request-response workflows (onboarding flows) where the repository acts as the gateway to application state.
+
 ## Quick Start
 
 1. Create and activate a virtual environment.
