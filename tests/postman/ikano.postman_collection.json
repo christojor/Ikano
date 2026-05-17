@@ -25,8 +25,8 @@
               "pm.test('Status code is 200', function () {",
               "    pm.response.to.have.status(200);",
               "});",
-              "pm.test('Body includes app title', function () {",
-              "    pm.expect(pm.response.text()).to.include('Ikano Python Developer Work Sample');",
+              "pm.test('Body includes Ikano welcome message', function () {",
+              "    pm.expect(pm.response.text()).to.include('Welcome to Ikano Bank');",
               "});"
             ]
           }
