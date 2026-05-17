@@ -16,6 +16,7 @@ from app.application.domain.onboarding import (
     AuditEvent,
     CheckRunRecord,
     CountryCode,
+    DecisionResult,
     DecisionOutcomeCode,
     ManualReviewCaseRecord,
     ManualReviewStatus,
@@ -289,14 +290,20 @@ class OnboardingService:
                 if current_step.check_type_code.value == "CREDIT":
                     check_payload = self._apply_credit_affordability_rules(payload)
 
-                check_result = self._check_service.evaluate(payload=check_payload)
+                check_result = self._check_service.evaluate(
+                    check_type_code=current_step.check_type_code,
+                    payload=check_payload,
+                )
                 check_run = CheckRunRecord(
                     check_run_id=self._repository.next_check_run_id(),
                     application_id=application.application_id,
                     check_type_code=current_step.check_type_code,
-                    check_business_result_code=check_result,
+                    check_business_result_code=check_result.check_business_result_code,
                     correlation_id=application.public_reference,
-                    input_fingerprint=self._build_input_fingerprint(check_payload),
+                    input_fingerprint=self._build_input_fingerprint(
+                        payload=check_payload,
+                        technical_result=check_result.check_technical_result_code.value,
+                    ),
                     created_at=now,
                 )
                 self._repository.append_check_run(check_run)
@@ -307,19 +314,22 @@ class OnboardingService:
                     event_timestamp=now,
                     check_type_code=check_run.check_type_code.value,
                     check_business_result_code=check_run.check_business_result_code.value,
+                    check_technical_result_code=check_result.check_technical_result_code.value,
+                    adapter_name=check_result.adapter_name,
+                    outcome_reason_code=check_result.outcome_reason_code,
                 )
 
             if self._progression_service.has_next_step(application=application, flow=flow):
                 self._progression_service.move_to_next_step(application=application, flow=flow)
             else:
-                decision = self._decision_service.decide(
+                decision_result = self._decision_service.decide(
                     check_runs=self._repository.list_check_runs(
                         application_id=application.application_id
                     )
                 )
                 self._finalize_application_decision(
                     application=application,
-                    decision=decision,
+                    decision_result=decision_result,
                     decided_at=now,
                 )
 
@@ -344,19 +354,19 @@ class OnboardingService:
             "affordability_disposable_income": str(disposable_income),
         }
 
-    def _build_input_fingerprint(self, payload: dict[str, str]) -> str:
+    def _build_input_fingerprint(self, payload: dict[str, str], technical_result: str) -> str:
         scenario = payload.get("scenario", "PASS").upper()
         monthly_income = payload.get("monthly_income")
         monthly_expenses = payload.get("monthly_expenses")
         if monthly_income is not None and monthly_expenses is not None:
-            return f"{scenario}:{monthly_income}:{monthly_expenses}"
-        return scenario
+            return f"{scenario}:{technical_result}:{monthly_income}:{monthly_expenses}"
+        return f"{scenario}:{technical_result}"
 
     def _finalize_application_decision(
         self,
         *,
         application: ApplicationRecord,
-        decision: DecisionOutcomeCode,
+        decision_result: DecisionResult,
         decided_at: datetime,
     ) -> None:
         """
@@ -367,9 +377,10 @@ class OnboardingService:
 
         Args:
             application: Application to decide (modified in place)
-            decision: Final decision outcome
+            decision_result: Final decision outcome and explanation metadata
             decided_at: Timestamp for decision
         """
+        decision = decision_result.outcome_code
         status_map = {
             DecisionOutcomeCode.APPROVED: ApplicationStatus.APPROVED,
             DecisionOutcomeCode.MANUAL_REVIEW: ApplicationStatus.UNDER_REVIEW,
@@ -383,6 +394,9 @@ class OnboardingService:
             correlation_id=application.public_reference,
             event_timestamp=decided_at,
             decision_outcome=decision.value,
+            reason_codes=decision_result.reason_codes,
+            rule_version=decision_result.rule_version,
+            explanation=decision_result.explanation,
         )
 
         if decision == DecisionOutcomeCode.MANUAL_REVIEW:

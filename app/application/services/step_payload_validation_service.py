@@ -9,6 +9,8 @@ class StepPayloadValidationService:
     """Validates per-step payload fields used to advance onboarding flows."""
 
     _SCENARIOS: ClassVar[set[str]] = {"PASS", "FAIL", "MANUAL_REVIEW"}
+    _TECHNICAL_SCENARIOS: ClassVar[set[str]] = {"OK", "TIMEOUT", "ERROR"}
+
     def validate(
         self,
         *,
@@ -18,6 +20,7 @@ class StepPayloadValidationService:
     ) -> None:
         if check_type_code is not None:
             self._validate_scenario(payload)
+            self._validate_technical_scenario(payload)
 
         step_validators: dict[str, Callable[[dict[str, str]], None]] = {
             "COLLECT_SE_IDENTITY": self._validate_collect_se_identity,
@@ -48,6 +51,11 @@ class StepPayloadValidationService:
         scenario = payload.get("scenario", "PASS").upper()
         if scenario not in self._SCENARIOS:
             raise InvalidStepPayloadError("Scenario must be PASS, FAIL, or MANUAL_REVIEW")
+
+    def _validate_technical_scenario(self, payload: dict[str, str]) -> None:
+        technical_scenario = payload.get("technical_scenario", "OK").upper()
+        if technical_scenario not in self._TECHNICAL_SCENARIOS:
+            raise InvalidStepPayloadError("technical_scenario must be OK, TIMEOUT, or ERROR")
 
     def _validate_collect_se_identity(self, payload: dict[str, str]) -> None:
         self._require_digits(payload, field="identity_number", expected_lengths={10, 12})

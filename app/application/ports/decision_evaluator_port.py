@@ -1,7 +1,7 @@
 from typing import Protocol
 
-from app.application.domain.onboarding import CheckRunRecord, DecisionOutcomeCode
+from app.application.domain.onboarding import CheckRunRecord, DecisionResult
 
 
 class DecisionEvaluatorPort(Protocol):
-    def decide(self, check_runs: tuple[CheckRunRecord, ...]) -> DecisionOutcomeCode: ...
+    def decide(self, check_runs: tuple[CheckRunRecord, ...]) -> DecisionResult: ...

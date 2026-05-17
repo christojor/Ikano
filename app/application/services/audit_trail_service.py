@@ -1,4 +1,5 @@
 from datetime import datetime
+import json
 
 from app.application.domain.onboarding import ActorType, AuditEvent, AuditEventType
 from app.application.ports.audit_event_repository_port import AuditEventRepositoryPort
@@ -54,6 +55,9 @@ class AuditTrailService:
         event_timestamp: datetime,
         check_type_code: str,
         check_business_result_code: str,
+        check_technical_result_code: str,
+        adapter_name: str,
+        outcome_reason_code: str,
     ) -> None:
         self._append(
             application_id=application_id,
@@ -63,6 +67,9 @@ class AuditTrailService:
             metadata={
                 "check_type_code": check_type_code,
                 "check_business_result_code": check_business_result_code,
+                "check_technical_result_code": check_technical_result_code,
+                "adapter_name": adapter_name,
+                "outcome_reason_code": outcome_reason_code,
             },
         )
 
@@ -73,13 +80,21 @@ class AuditTrailService:
         correlation_id: str,
         event_timestamp: datetime,
         decision_outcome: str,
+        reason_codes: tuple[str, ...],
+        rule_version: str,
+        explanation: dict[str, str],
     ) -> None:
         self._append(
             application_id=application_id,
             event_type=AuditEventType.APPLICATION_DECIDED,
             correlation_id=correlation_id,
             event_timestamp=event_timestamp,
-            metadata={"decision_outcome": decision_outcome},
+            metadata={
+                "decision_outcome": decision_outcome,
+                "reason_codes": ",".join(reason_codes),
+                "rule_version": rule_version,
+                "explanation_json": json.dumps(explanation, sort_keys=True),
+            },
         )
 
     def manual_review_opened(

@@ -46,10 +46,32 @@ class CheckBusinessResultCode(StrEnum):
     FAIL = "FAIL"
 
 
+class CheckTechnicalResultCode(StrEnum):
+    OK = "OK"
+    TIMEOUT = "TIMEOUT"
+    ERROR = "ERROR"
+
+
 class DecisionOutcomeCode(StrEnum):
     APPROVED = "APPROVED"
     MANUAL_REVIEW = "MANUAL_REVIEW"
     REJECTED = "REJECTED"
+
+
+@dataclass(slots=True, frozen=True)
+class CheckEvaluationResult:
+    check_business_result_code: CheckBusinessResultCode
+    check_technical_result_code: CheckTechnicalResultCode
+    adapter_name: str
+    outcome_reason_code: str
+
+
+@dataclass(slots=True, frozen=True)
+class DecisionResult:
+    outcome_code: DecisionOutcomeCode
+    reason_codes: tuple[str, ...]
+    rule_version: str
+    explanation: dict[str, str]
 
 
 class ManualReviewStatus(StrEnum):

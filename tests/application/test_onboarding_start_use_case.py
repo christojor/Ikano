@@ -8,8 +8,12 @@ from app.infrastructure.repositories.in_memory_onboarding_repository import (
 )
 
 
-def _payload_for_step(step_code: str, scenario: str = "PASS") -> dict[str, str]:
-    payload = {"scenario": scenario}
+def _payload_for_step(
+    step_code: str,
+    scenario: str = "PASS",
+    technical_scenario: str = "OK",
+) -> dict[str, str]:
+    payload = {"scenario": scenario, "technical_scenario": technical_scenario}
 
     if step_code in {"COLLECT_SE_IDENTITY", "COLLECT_ES_DNI_NIE", "COLLECT_PL_PESEL"}:
         payload["identity_number"] = "44051401458" if step_code == "COLLECT_PL_PESEL" else "199001019999"
@@ -197,3 +201,61 @@ def test_credit_step_uses_affordability_inputs_for_decision(
     )
 
     assert updated.status == ApplicationStatus.REJECTED
+
+
+def test_timeout_and_error_paths_are_persisted_in_audit_metadata(
+    onboarding_service: OnboardingService,
+) -> None:
+    application = onboarding_service.start_application(country_code="SE", party_type_code="PRIVATE")
+
+    # Step 1 has no check.
+    updated = onboarding_service.advance_step(
+        application_id=application.application_id,
+        payload=_payload_for_step(application.current_step_code, scenario="PASS"),
+    )
+    # Step 2 (KYC) timeout path.
+    updated = onboarding_service.advance_step(
+        application_id=updated.application_id,
+        payload=_payload_for_step(updated.current_step_code, scenario="PASS", technical_scenario="TIMEOUT"),
+    )
+    # Step 3 has no check.
+    updated = onboarding_service.advance_step(
+        application_id=updated.application_id,
+        payload=_payload_for_step(updated.current_step_code, scenario="PASS"),
+    )
+    # Step 4 (SANCTIONS) error path.
+    updated = onboarding_service.advance_step(
+        application_id=updated.application_id,
+        payload=_payload_for_step(updated.current_step_code, scenario="PASS", technical_scenario="ERROR"),
+    )
+
+    events = onboarding_service.get_audit_events(application_id=updated.application_id)
+    check_events = [event for event in events if event.event_type == "CHECK_COMPLETED"]
+
+    assert len(check_events) == 2
+    assert check_events[0].metadata["check_technical_result_code"] == "TIMEOUT"
+    assert check_events[0].metadata["check_business_result_code"] == "MANUAL_REVIEW"
+    assert check_events[1].metadata["check_technical_result_code"] == "ERROR"
+    assert check_events[1].metadata["check_business_result_code"] == "FAIL"
+
+
+def test_application_decision_event_includes_reason_codes_and_rule_version(
+    onboarding_service: OnboardingService,
+) -> None:
+    application = onboarding_service.start_application(country_code="SE", party_type_code="PRIVATE")
+    flow = onboarding_service.get_flow_for_application(application.application_id)
+
+    updated = application
+    for _ in range(len(flow.steps)):
+        updated = onboarding_service.advance_step(
+            application_id=updated.application_id,
+            payload=_payload_for_step(updated.current_step_code, scenario="PASS"),
+        )
+
+    events = onboarding_service.get_audit_events(application_id=updated.application_id)
+    decision_events = [event for event in events if event.event_type == "APPLICATION_DECIDED"]
+
+    assert len(decision_events) == 1
+    assert decision_events[0].metadata["rule_version"] == "decision-rules/v1"
+    assert decision_events[0].metadata["reason_codes"] == "ALL_CHECKS_PASSED"
+    assert "explanation_json" in decision_events[0].metadata

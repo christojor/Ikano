@@ -1,4 +1,5 @@
 from pathlib import Path
+import json
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -39,6 +40,32 @@ _TERMINAL_STATUSES = {
     ApplicationStatus.UNDER_REVIEW,
     ApplicationStatus.CANCELLED,
 }
+
+
+def _decision_summary_from_events(events: tuple[AuditEvent, ...]) -> dict[str, object] | None:
+    for event in reversed(events):
+        if event.event_type.value != "APPLICATION_DECIDED":
+            continue
+
+        reason_codes_raw = event.metadata.get("reason_codes", "")
+        reason_codes = tuple(code for code in reason_codes_raw.split(",") if code)
+        explanation: dict[str, str] = {}
+        explanation_raw = event.metadata.get("explanation_json")
+        if explanation_raw:
+            try:
+                parsed = json.loads(explanation_raw)
+                if isinstance(parsed, dict):
+                    explanation = {str(key): str(value) for key, value in parsed.items()}
+            except json.JSONDecodeError:
+                explanation = {}
+
+        return {
+            "rule_version": event.metadata.get("rule_version", ""),
+            "reason_codes": reason_codes,
+            "explanation": explanation,
+        }
+
+    return None
 
 
 # ============================================================================
@@ -99,6 +126,11 @@ class AdvanceStepRequest(BaseModel):
         default="PASS",
         description="Check outcome scenario (PASS, FAIL, or MANUAL_REVIEW)",
         examples=["PASS", "FAIL", "MANUAL_REVIEW"],
+    )
+    technical_scenario: str = Field(
+        default="OK",
+        description="Technical adapter behavior (OK, TIMEOUT, or ERROR)",
+        examples=["OK", "TIMEOUT", "ERROR"],
     )
 
 
@@ -405,7 +437,11 @@ def advance_onboarding(
         }
         application = onboarding_service.advance_step(
             application_id=application_id,
-            payload={"scenario": payload.scenario, **extra_payload},
+            payload={
+                "scenario": payload.scenario,
+                "technical_scenario": payload.technical_scenario,
+                **extra_payload,
+            },
         )
     except ApplicationNotFoundError as error:
         raise HTTPException(status_code=404, detail=str(error)) from error
@@ -716,7 +752,16 @@ def onboarding_result_page(
         application = onboarding_service.get_application(application_id=application_id)
     except ApplicationNotFoundError as error:
         raise HTTPException(status_code=404, detail=str(error)) from error
+
+    events = onboarding_service.get_audit_events(application_id=application_id)
+    decision_summary = _decision_summary_from_events(events)
+
     return templates.TemplateResponse(
-        request, "onboarding/result.html", {"application": application}
+        request,
+        "onboarding/result.html",
+        {
+            "application": application,
+            "decision_summary": decision_summary,
+        },
     )
 
