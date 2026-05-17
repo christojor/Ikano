@@ -7,8 +7,9 @@ Create Date: 2026-05-17 12:00:00.000000
 
 from collections.abc import Sequence
 
-from alembic import op
 import sqlalchemy as sa
+
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = "20260517_01"
@@ -64,7 +65,12 @@ def upgrade() -> None:
     op.create_table(
         "onboarding_flow",
         sa.Column("flow_id", sa.BigInteger(), primary_key=True, autoincrement=True),
-        sa.Column("country_code", sa.String(length=2), sa.ForeignKey("country.country_code"), nullable=False),
+        sa.Column(
+            "country_code",
+            sa.String(length=2),
+            sa.ForeignKey("country.country_code"),
+            nullable=False,
+        ),
         sa.Column(
             "party_type_code",
             sa.String(length=16),
@@ -80,7 +86,9 @@ def upgrade() -> None:
     op.create_table(
         "onboarding_step",
         sa.Column("step_id", sa.BigInteger(), primary_key=True, autoincrement=True),
-        sa.Column("flow_id", sa.BigInteger(), sa.ForeignKey("onboarding_flow.flow_id"), nullable=False),
+        sa.Column(
+            "flow_id", sa.BigInteger(), sa.ForeignKey("onboarding_flow.flow_id"), nullable=False
+        ),
         sa.Column("step_code", sa.String(length=32), nullable=False),
         sa.Column("step_title", sa.String(length=120), nullable=False),
         sa.Column("step_order", sa.Integer(), nullable=False),
@@ -98,33 +106,59 @@ def upgrade() -> None:
         "application",
         sa.Column("application_id", sa.BigInteger(), primary_key=True, autoincrement=True),
         sa.Column("public_reference", sa.String(length=40), nullable=False, unique=True),
-        sa.Column("country_code", sa.String(length=2), sa.ForeignKey("country.country_code"), nullable=False),
+        sa.Column(
+            "country_code",
+            sa.String(length=2),
+            sa.ForeignKey("country.country_code"),
+            nullable=False,
+        ),
         sa.Column(
             "party_type_code",
             sa.String(length=16),
             sa.ForeignKey("party_type.party_type_code"),
             nullable=False,
         ),
-        sa.Column("flow_id", sa.BigInteger(), sa.ForeignKey("onboarding_flow.flow_id"), nullable=False),
+        sa.Column(
+            "flow_id", sa.BigInteger(), sa.ForeignKey("onboarding_flow.flow_id"), nullable=False
+        ),
         sa.Column(
             "application_status_code",
             sa.String(length=24),
             sa.ForeignKey("application_status.application_status_code"),
             nullable=False,
         ),
-        sa.Column("current_step_id", sa.BigInteger(), sa.ForeignKey("onboarding_step.step_id"), nullable=True),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
+        sa.Column(
+            "current_step_id",
+            sa.BigInteger(),
+            sa.ForeignKey("onboarding_step.step_id"),
+            nullable=True,
+        ),
+        sa.Column(
+            "created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()
+        ),
         sa.Column("submitted_at", sa.DateTime(timezone=True), nullable=True),
     )
 
     op.create_table(
         "check_run",
         sa.Column("check_run_id", sa.BigInteger(), primary_key=True, autoincrement=True),
-        sa.Column("application_id", sa.BigInteger(), sa.ForeignKey("application.application_id"), nullable=False),
-        sa.Column("check_type_code", sa.String(length=24), sa.ForeignKey("check_type.check_type_code"), nullable=False),
+        sa.Column(
+            "application_id",
+            sa.BigInteger(),
+            sa.ForeignKey("application.application_id"),
+            nullable=False,
+        ),
+        sa.Column(
+            "check_type_code",
+            sa.String(length=24),
+            sa.ForeignKey("check_type.check_type_code"),
+            nullable=False,
+        ),
         sa.Column("correlation_id", sa.String(length=80), nullable=False),
         sa.Column("input_fingerprint", sa.String(length=128), nullable=False),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
+        sa.Column(
+            "created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()
+        ),
         sa.Column(
             "check_business_result_code",
             sa.String(length=24),
@@ -144,17 +178,29 @@ def upgrade() -> None:
             unique=True,
         ),
         sa.Column("review_status", sa.String(length=24), nullable=False),
-        sa.Column("opened_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
+        sa.Column(
+            "opened_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()
+        ),
     )
 
     op.create_table(
         "audit_event",
         sa.Column("audit_event_id", sa.BigInteger(), primary_key=True, autoincrement=True),
-        sa.Column("application_id", sa.BigInteger(), sa.ForeignKey("application.application_id"), nullable=False),
+        sa.Column(
+            "application_id",
+            sa.BigInteger(),
+            sa.ForeignKey("application.application_id"),
+            nullable=False,
+        ),
         sa.Column("actor_type", sa.String(length=24), nullable=False),
         sa.Column("actor_id", sa.String(length=120), nullable=False),
         sa.Column("event_type", sa.String(length=48), nullable=False),
-        sa.Column("event_timestamp", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
+        sa.Column(
+            "event_timestamp",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.func.now(),
+        ),
         sa.Column("correlation_id", sa.String(length=80), nullable=False),
         sa.Column("metadata_json", sa.JSON(), nullable=True),
     )
@@ -196,10 +242,19 @@ def _seed_lookup_tables() -> None:
             sa.column("description", sa.String),
         ),
         [
-            {"application_status_code": "DRAFT", "description": "Application started but not submitted"},
-            {"application_status_code": "IN_PROGRESS", "description": "Application is being processed"},
+            {
+                "application_status_code": "DRAFT",
+                "description": "Application started but not submitted",
+            },
+            {
+                "application_status_code": "IN_PROGRESS",
+                "description": "Application is being processed",
+            },
             {"application_status_code": "SUBMITTED", "description": "Application submitted"},
-            {"application_status_code": "UNDER_REVIEW", "description": "Application under manual review"},
+            {
+                "application_status_code": "UNDER_REVIEW",
+                "description": "Application under manual review",
+            },
             {"application_status_code": "APPROVED", "description": "Application approved"},
             {"application_status_code": "REJECTED", "description": "Application rejected"},
             {"application_status_code": "CANCELLED", "description": "Application cancelled"},
@@ -244,7 +299,10 @@ def _seed_lookup_tables() -> None:
         ),
         [
             {"check_business_result_code": "PASS", "description": "Automated pass"},
-            {"check_business_result_code": "MANUAL_REVIEW", "description": "Requires manual review"},
+            {
+                "check_business_result_code": "MANUAL_REVIEW",
+                "description": "Requires manual review",
+            },
             {"check_business_result_code": "FAIL", "description": "Automated fail"},
         ],
     )

@@ -1,6 +1,9 @@
 [tool.pytest.ini_options]
 pythonpath = ["."]
 testpaths = ["tests"]
+markers = [
+    "integration: marks tests that require a live PostgreSQL database (deselect with '-m not integration')",
+]
 
 [tool.ruff]
 line-length = 100
@@ -14,7 +17,7 @@ ignore = ["E501"]
 "alembic/env.py" = ["ANN401"]
 "app/infrastructure/config.py" = ["S105"]
 "app/application/domain/onboarding.py" = ["S105"]
-"tests/**/*.py" = ["S101"]
+"tests/**/*.py" = ["S101", "ANN", "PLR2004"]
 
 [tool.ruff.lint.mccabe]
 max-complexity = 10

@@ -16,6 +16,7 @@ from app.application.domain.onboarding import (
     DecisionOutcomeCode,
     ManualReviewCaseRecord,
     ManualReviewStatus,
+    OnboardingFlow,
     PartyTypeCode,
 )
 from app.application.ports.application_repository_port import ApplicationRepositoryPort
@@ -109,6 +110,13 @@ class OnboardingService:
         if application is None:
             raise ApplicationNotFoundError("Application not found")
         return application
+
+    def get_flow_for_application(self, application_id: int) -> OnboardingFlow:
+        application = self.get_application(application_id=application_id)
+        flow = self._flow_query.get_flow_by_id(flow_id=application.flow_id)
+        if flow is None:
+            raise OnboardingFlowNotFoundError("Onboarding flow not found")
+        return flow
 
     def advance_step(self, application_id: int, payload: dict[str, str]) -> ApplicationRecord:
         with self._unit_of_work.transaction():

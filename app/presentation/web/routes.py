@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 
@@ -13,7 +13,7 @@ from app.application.domain.exceptions import (
     UnsupportedCountryCodeError,
     UnsupportedPartyTypeCodeError,
 )
-from app.application.domain.onboarding import ApplicationRecord
+from app.application.domain.onboarding import ApplicationRecord, ApplicationStatus
 from app.application.services.health_service import HealthService
 from app.application.services.onboarding_service import OnboardingService
 from app.presentation.dependencies import get_health_service, get_onboarding_service
@@ -23,6 +23,13 @@ WEB_DIR = Path(__file__).resolve().parent
 STATIC_DIR = WEB_DIR / "static"
 
 templates = Jinja2Templates(directory=str(WEB_DIR / "templates"))
+
+_TERMINAL_STATUSES = {
+    ApplicationStatus.APPROVED,
+    ApplicationStatus.REJECTED,
+    ApplicationStatus.UNDER_REVIEW,
+    ApplicationStatus.CANCELLED,
+}
 
 
 class StartApplicationRequest(BaseModel):
@@ -120,3 +127,66 @@ def get_onboarding_application(
     except ApplicationNotFoundError as error:
         raise HTTPException(status_code=404, detail=str(error)) from error
     return _to_application_response(application)
+
+
+# ---------------------------------------------------------------------------
+# Onboarding UI routes (server-rendered pages)
+# ---------------------------------------------------------------------------
+
+
+@router.get("/onboarding", response_class=HTMLResponse)
+def onboarding_start_page(request: Request) -> HTMLResponse:
+    return templates.TemplateResponse(request, "onboarding/start.html", {})
+
+
+@router.get("/onboarding/{application_id}/step")
+def onboarding_step_page(
+    application_id: int,
+    request: Request,
+    onboarding_service: Annotated[OnboardingService, Depends(get_onboarding_service)],
+) -> Response:
+    try:
+        application = onboarding_service.get_application(application_id=application_id)
+    except ApplicationNotFoundError as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
+
+    if application.status in _TERMINAL_STATUSES:
+        return RedirectResponse(url=f"/onboarding/{application_id}/result")
+
+    try:
+        flow = onboarding_service.get_flow_for_application(application_id=application_id)
+    except OnboardingFlowNotFoundError as error:
+        raise HTTPException(status_code=500, detail=str(error)) from error
+
+    current_step = next(
+        (s for s in flow.steps if s.step_order == application.current_step_order),
+        flow.steps[0],
+    )
+    total_steps = len(flow.steps)
+    progress_pct = int((application.current_step_order - 1) / total_steps * 100)
+
+    return templates.TemplateResponse(
+        request,
+        "onboarding/step.html",
+        {
+            "application": application,
+            "step": current_step,
+            "total_steps": total_steps,
+            "progress_pct": progress_pct,
+        },
+    )
+
+
+@router.get("/onboarding/{application_id}/result", response_class=HTMLResponse)
+def onboarding_result_page(
+    application_id: int,
+    request: Request,
+    onboarding_service: Annotated[OnboardingService, Depends(get_onboarding_service)],
+) -> HTMLResponse:
+    try:
+        application = onboarding_service.get_application(application_id=application_id)
+    except ApplicationNotFoundError as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
+    return templates.TemplateResponse(
+        request, "onboarding/result.html", {"application": application}
+    )

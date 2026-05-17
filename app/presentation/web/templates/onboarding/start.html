@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+
+{% block title %}Start Application | Ikano{% endblock %}
+
+{% block content %}
+<section class="app-card">
+  <div class="mb-6">
+    <a href="/" class="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-700">
+      <span class="material-symbols-outlined text-base">arrow_back</span>
+      Back to home
+    </a>
+  </div>
+
+  <h1 class="text-2xl font-semibold tracking-tight text-slate-900">Start Onboarding Application</h1>
+  <p class="mt-2 text-sm text-slate-600">Select your country and applicant type to begin.</p>
+
+  <form id="start-form" class="mt-8 space-y-6">
+    <!-- Country -->
+    <div>
+      <label for="country_code" class="block text-sm font-medium text-slate-700">Country</label>
+      <select
+        id="country_code"
+        name="country_code"
+        class="mt-1 block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+        required
+      >
+        <option value="" disabled selected>Select a country…</option>
+        <option value="SE">🇸🇪 Sweden (SE)</option>
+        <option value="ES">🇪🇸 Spain (ES)</option>
+        <option value="PL">🇵🇱 Poland (PL)</option>
+      </select>
+    </div>
+
+    <!-- Party type -->
+    <fieldset>
+      <legend class="block text-sm font-medium text-slate-700">Applicant type</legend>
+      <div class="mt-2 flex gap-4">
+        <label class="flex items-center gap-2 cursor-pointer">
+          <input type="radio" name="party_type_code" value="PRIVATE" class="accent-blue-600" required />
+          <span class="text-sm text-slate-700">
+            <span class="material-symbols-outlined align-middle text-base">person</span>
+            Private individual
+          </span>
+        </label>
+        <label class="flex items-center gap-2 cursor-pointer">
+          <input type="radio" name="party_type_code" value="BUSINESS" class="accent-blue-600" />
+          <span class="text-sm text-slate-700">
+            <span class="material-symbols-outlined align-middle text-base">business</span>
+            Business
+          </span>
+        </label>
+      </div>
+    </fieldset>
+
+    <div id="form-error" class="hidden rounded-md bg-red-50 px-4 py-3 text-sm text-red-700 border border-red-200"></div>
+
+    <button
+      type="submit"
+      id="submit-btn"
+      class="inline-flex items-center gap-2 rounded-md bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
+    >
+      <span class="material-symbols-outlined text-base">play_arrow</span>
+      Start application
+    </button>
+  </form>
+</section>
+
+<script>
+  document.getElementById('start-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const form = e.target;
+    const btn = document.getElementById('submit-btn');
+    const errBox = document.getElementById('form-error');
+
+    const country_code = form.country_code.value;
+    const party_type_code = form.querySelector('[name=party_type_code]:checked')?.value;
+
+    if (!party_type_code) {
+      errBox.textContent = 'Please select an applicant type.';
+      errBox.classList.remove('hidden');
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Starting…';
+    errBox.classList.add('hidden');
+
+    try {
+      const res = await fetch('/api/onboarding/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ country_code, party_type_code }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.detail || 'Failed to start application');
+      }
+      const data = await res.json();
+      window.location.href = `/onboarding/${data.application_id}/step`;
+    } catch (err) {
+      errBox.textContent = err.message;
+      errBox.classList.remove('hidden');
+      btn.disabled = false;
+      btn.innerHTML = '<span class="material-symbols-outlined text-base">play_arrow</span> Start application';
+    }
+  });
+</script>
+{% endblock %}

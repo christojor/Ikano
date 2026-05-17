@@ -2,7 +2,7 @@
   "info": {
     "name": "Ikano API Tests",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "description": "Smoke checks for the FastAPI server-rendered app."
+    "description": "Contract tests for the Ikano onboarding API and server-rendered app."
   },
   "item": [
     {
@@ -12,12 +12,8 @@
         "header": [],
         "url": {
           "raw": "{{baseUrl}}/",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            ""
-          ]
+          "host": ["{{baseUrl}}"],
+          "path": [""]
         }
       },
       "event": [
@@ -36,6 +32,371 @@
           }
         }
       ]
+    },
+    {
+      "name": "Onboarding — Happy Path (SE / PRIVATE / APPROVED)",
+      "item": [
+        {
+          "name": "1. Start application",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"country_code\": \"SE\", \"party_type_code\": \"PRIVATE\"}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/onboarding/start",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "onboarding", "start"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.test('Returns application_id', () => pm.expect(body.application_id).to.be.a('number'));",
+                  "pm.test('Status is IN_PROGRESS', () => pm.expect(body.status).to.eql('IN_PROGRESS'));",
+                  "pm.test('Country is SE', () => pm.expect(body.country_code).to.eql('SE'));",
+                  "pm.test('Party type is PRIVATE', () => pm.expect(body.party_type_code).to.eql('PRIVATE'));",
+                  "pm.collectionVariables.set('applicationId', body.application_id);",
+                  "pm.collectionVariables.set('publicReference', body.public_reference);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2. Advance — Collect private profile (step 1)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"scenario\": \"PASS\"}" },
+            "url": {
+              "raw": "{{baseUrl}}/api/onboarding/{{applicationId}}/advance",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "onboarding", "{{applicationId}}", "advance"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('Status still IN_PROGRESS', () => pm.expect(body.status).to.eql('IN_PROGRESS'));",
+                  "pm.test('Moved to step 2', () => pm.expect(body.current_step_order).to.eql(2));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3. Advance — KYC check (step 2, PASS)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"scenario\": \"PASS\"}" },
+            "url": {
+              "raw": "{{baseUrl}}/api/onboarding/{{applicationId}}/advance",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "onboarding", "{{applicationId}}", "advance"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('Status still IN_PROGRESS', () => pm.expect(body.status).to.eql('IN_PROGRESS'));",
+                  "pm.test('Moved to step 3', () => pm.expect(body.current_step_order).to.eql(3));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "4. Advance — Sanctions check (step 3, PASS)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"scenario\": \"PASS\"}" },
+            "url": {
+              "raw": "{{baseUrl}}/api/onboarding/{{applicationId}}/advance",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "onboarding", "{{applicationId}}", "advance"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('Status still IN_PROGRESS', () => pm.expect(body.status).to.eql('IN_PROGRESS'));",
+                  "pm.test('Moved to step 4', () => pm.expect(body.current_step_order).to.eql(4));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "5. Advance — Decision (step 4)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"scenario\": \"PASS\"}" },
+            "url": {
+              "raw": "{{baseUrl}}/api/onboarding/{{applicationId}}/advance",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "onboarding", "{{applicationId}}", "advance"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('Final status is APPROVED', () => pm.expect(body.status).to.eql('APPROVED'));",
+                  "pm.test('submitted_at is set', () => pm.expect(body.submitted_at).to.not.be.null);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6. GET application — verify APPROVED",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/onboarding/{{applicationId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "onboarding", "{{applicationId}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('Status is APPROVED', () => pm.expect(body.status).to.eql('APPROVED'));",
+                  "pm.test('Reference matches', () => pm.expect(body.public_reference).to.eql(pm.collectionVariables.get('publicReference')));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Onboarding — MANUAL_REVIEW path (ES / BUSINESS)",
+      "item": [
+        {
+          "name": "1. Start ES/BUSINESS application",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"country_code\": \"ES\", \"party_type_code\": \"BUSINESS\"}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/onboarding/start",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "onboarding", "start"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.test('Country is ES', () => pm.expect(body.country_code).to.eql('ES'));",
+                  "pm.collectionVariables.set('mrApplicationId', body.application_id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2. Advance — Collect business profile (step 1)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"scenario\": \"PASS\"}" },
+            "url": {
+              "raw": "{{baseUrl}}/api/onboarding/{{mrApplicationId}}/advance",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "onboarding", "{{mrApplicationId}}", "advance"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Moved to step 2', () => pm.expect(pm.response.json().current_step_order).to.eql(2));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3. Advance — KYB check (step 2, MANUAL_REVIEW)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"scenario\": \"MANUAL_REVIEW\"}" },
+            "url": {
+              "raw": "{{baseUrl}}/api/onboarding/{{mrApplicationId}}/advance",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "onboarding", "{{mrApplicationId}}", "advance"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Moved to step 3', () => pm.expect(pm.response.json().current_step_order).to.eql(3));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "4. Advance — Registry check (step 3, PASS)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"scenario\": \"PASS\"}" },
+            "url": {
+              "raw": "{{baseUrl}}/api/onboarding/{{mrApplicationId}}/advance",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "onboarding", "{{mrApplicationId}}", "advance"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Moved to step 4', () => pm.expect(pm.response.json().current_step_order).to.eql(4));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "5. Advance — Decision (step 4)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"scenario\": \"PASS\"}" },
+            "url": {
+              "raw": "{{baseUrl}}/api/onboarding/{{mrApplicationId}}/advance",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "onboarding", "{{mrApplicationId}}", "advance"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('Final status is UNDER_REVIEW', () => pm.expect(body.status).to.eql('UNDER_REVIEW'));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Onboarding — Error cases",
+      "item": [
+        {
+          "name": "Start with invalid country code",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"country_code\": \"XX\", \"party_type_code\": \"PRIVATE\"}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/onboarding/start",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "onboarding", "start"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET non-existent application",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/onboarding/999999",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "onboarding", "999999"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 404', () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
     }
   ]
 }
+

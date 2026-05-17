@@ -33,7 +33,9 @@ class SQLAlchemyOnboardingRepository:
     def __init__(self, session: Session) -> None:
         self._session = session
 
-    def get_active_flow(self, country_code: CountryCode, party_type_code: PartyTypeCode) -> OnboardingFlow | None:
+    def get_active_flow(
+        self, country_code: CountryCode, party_type_code: PartyTypeCode
+    ) -> OnboardingFlow | None:
         model = (
             self._session.query(OnboardingFlowModel)
             .options(selectinload(OnboardingFlowModel.steps))
@@ -61,7 +63,9 @@ class SQLAlchemyOnboardingRepository:
         return self._to_flow(model)
 
     def create_application(self, application: ApplicationRecord) -> ApplicationRecord:
-        current_step_id = self._find_step_id(flow_id=application.flow_id, step_code=application.current_step_code)
+        current_step_id = self._find_step_id(
+            flow_id=application.flow_id, step_code=application.current_step_code
+        )
         model = ApplicationModel(
             application_id=application.application_id,
             public_reference=application.public_reference,
@@ -96,7 +100,9 @@ class SQLAlchemyOnboardingRepository:
             return
 
         model.application_status_code = application.status.value
-        model.current_step_id = self._find_step_id(flow_id=application.flow_id, step_code=application.current_step_code)
+        model.current_step_id = self._find_step_id(
+            flow_id=application.flow_id, step_code=application.current_step_code
+        )
         model.submitted_at = application.submitted_at
         self._session.flush()
 
@@ -236,7 +242,9 @@ class SQLAlchemyOnboardingRepository:
         return None if model is None else model.step_id
 
     def _to_flow(self, model: OnboardingFlowModel) -> OnboardingFlow:
-        steps = tuple(self._to_step(step) for step in sorted(model.steps, key=lambda item: item.step_order))
+        steps = tuple(
+            self._to_step(step) for step in sorted(model.steps, key=lambda item: item.step_order)
+        )
         return OnboardingFlow(
             flow_id=model.flow_id,
             country_code=CountryCode(model.country_code),
@@ -284,5 +292,7 @@ class SQLAlchemyOnboardingRepository:
             current_step_code=step_model.step_code,
             status=ApplicationStatus(model.application_status_code),
             created_at=model.created_at.replace(tzinfo=UTC),
-            submitted_at=None if model.submitted_at is None else model.submitted_at.replace(tzinfo=UTC),
+            submitted_at=None
+            if model.submitted_at is None
+            else model.submitted_at.replace(tzinfo=UTC),
         )

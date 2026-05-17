@@ -61,6 +61,29 @@ jobs:
     timeout-minutes: 20
     needs: lint_and_security
 
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: ikano
+          POSTGRES_PASSWORD: ikano
+          POSTGRES_DB: ikano
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    env:
+      DB_HOST: localhost
+      DB_PORT: 5432
+      DB_NAME: ikano
+      DB_USER: ikano
+      DB_PASSWORD: ikano
+      INTEGRATION_TESTS: "1"
+
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -78,6 +101,9 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements-dev.txt
+
+      - name: Run Alembic migrations
+        run: alembic upgrade head
 
       - name: Run pytest
         run: pytest -q
