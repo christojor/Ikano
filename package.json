@@ -7,6 +7,8 @@
     "node": ">=20"
   },
   "scripts": {
+    "build:css": "tailwindcss -i ./app/presentation/web/static/src/styles.css -o ./app/presentation/web/static/dist/styles.css --minify",
+    "watch:css": "tailwindcss -i ./app/presentation/web/static/src/styles.css -o ./app/presentation/web/static/dist/styles.css --watch",
     "test:api": "newman run tests/postman/ikano.postman_collection.json --environment tests/postman/local.postman_environment.json",
     "test:e2e": "playwright test",
     "test:e2e:chromium": "playwright test --project=chromium",
@@ -15,6 +17,7 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.54.2",
-    "newman": "^6.2.1"
+    "newman": "^6.2.1",
+    "tailwindcss": "^3.4.17"
   }
 }

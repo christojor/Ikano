@@ -13,6 +13,7 @@ Work sample app.
 - Docker + Docker Compose
 - Newman/Postman (API testing)
 - Playwright (E2E browser testing)
+- Tailwind CSS + Material Symbols (UI styling and iconography)
 
 ## Architecture
 
@@ -28,9 +29,10 @@ Project follows clean architecture boundaries:
 1. Create and activate a virtual environment.
 2. Install dependencies from `requirements-dev.txt`.
 3. Install Node dependencies: `npm install`.
-4. Copy `.env.example` to `.env` and adjust values.
-5. Run migrations: `alembic upgrade head`.
-6. Start app: `uvicorn app.main:app --reload`.
+4. Build frontend styles: `npm run build:css`.
+5. Copy `.env.example` to `.env` and adjust values.
+6. Run migrations: `alembic upgrade head`.
+7. Start app: `uvicorn app.main:app --reload`.
 
 Open `http://127.0.0.1:8000`.
 
@@ -39,6 +41,8 @@ Open `http://127.0.0.1:8000`.
 - Lint: `ruff check .`
 - Python tests: `pytest`
 - Newman/Postman tests: `npm run test:api`
+- Build Tailwind CSS: `npm run build:css`
+- Tailwind watch mode: `npm run watch:css`
 - Playwright tests (all browsers): `npm run test:e2e`
 - Playwright test per browser:
 	- `npm run test:e2e:chromium`
