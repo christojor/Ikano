@@ -8,6 +8,9 @@
   },
   "scripts": {
     "build:css": "tailwindcss -i ./app/presentation/web/static/src/styles.css -o ./app/presentation/web/static/dist/styles.css --minify",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker compose logs -f web",
+    "docker:up": "docker compose up --build -d",
     "watch:css": "tailwindcss -i ./app/presentation/web/static/src/styles.css -o ./app/presentation/web/static/dist/styles.css --watch",
     "test:api": "newman run tests/postman/ikano.postman_collection.json --environment tests/postman/local.postman_environment.json",
     "test:e2e": "playwright test",

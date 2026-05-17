@@ -36,6 +36,19 @@ Project follows clean architecture boundaries:
 
 Open `http://127.0.0.1:8000`.
 
+## Docker Local Run
+
+- Start stack: `npm run docker:up`
+- Stop stack: `npm run docker:down`
+- Follow app logs: `npm run docker:logs`
+
+Default host ports are conflict-safe:
+
+- Web app: `http://127.0.0.1:8001`
+- PostgreSQL: `127.0.0.1:5433`
+
+Inside Docker network, the app connects to Postgres via `DB_HOST=db` and `DB_PORT=5432`.
+
 ## Testing
 
 - Lint: `ruff check .`
