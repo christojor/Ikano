@@ -1,0 +1,241 @@
+%% db_schema - draw.io Mermaid import format
+%% In diagrams.net: Arrange -> Insert -> Advanced -> Mermaid
+
+erDiagram
+  COUNTRY {
+    char2 country_code PK
+    varchar country_name
+  }
+
+  PARTY_TYPE {
+    varchar party_type_code PK
+    varchar description
+  }
+
+  APPLICATION_STATUS {
+    varchar application_status_code PK
+    varchar description
+  }
+
+  STEP_STATUS {
+    varchar step_status_code PK
+    varchar description
+  }
+
+  CHECK_TYPE {
+    varchar check_type_code PK
+    varchar description
+  }
+
+  CHECK_BUSINESS_RESULT {
+    varchar check_business_result_code PK
+    varchar description
+  }
+
+  DECISION_OUTCOME {
+    varchar decision_outcome_code PK
+    varchar description
+  }
+
+  ONBOARDING_FLOW {
+    bigint flow_id PK
+    char2 country_code FK
+    varchar party_type_code FK
+    varchar flow_name
+    int flow_version
+    boolean is_active
+  }
+
+  ONBOARDING_STEP {
+    bigint step_id PK
+    bigint flow_id FK
+    varchar step_code
+    varchar step_title
+    int step_order
+    boolean is_terminal
+  }
+
+  APPLICATION {
+    bigint application_id PK
+    varchar public_reference
+    char2 country_code FK
+    varchar party_type_code FK
+    bigint flow_id FK
+    varchar application_status_code FK
+    bigint current_step_id FK
+    timestamp created_at
+    timestamp updated_at
+    timestamp submitted_at
+  }
+
+  APPLICANT_PARTY {
+    bigint party_id PK
+    bigint application_id FK
+    varchar party_role
+    varchar email
+    varchar phone_e164
+    timestamp created_at
+  }
+
+  PERSON_PROFILE {
+    bigint person_id PK
+    bigint party_id FK
+    varchar first_name
+    varchar last_name
+    date date_of_birth
+    varchar national_id_value
+    char2 nationality_country_code FK
+  }
+
+  BUSINESS_PROFILE {
+    bigint business_id PK
+    bigint party_id FK
+    varchar legal_name
+    varchar registration_number
+    varchar tax_number
+    char2 incorporation_country_code FK
+  }
+
+  ADDRESS {
+    bigint address_id PK
+    varchar line1
+    varchar line2
+    varchar postal_code
+    varchar city
+    char2 country_code FK
+  }
+
+  PARTY_ADDRESS {
+    bigint party_id FK
+    bigint address_id FK
+    varchar address_type
+  }
+
+  APPLICATION_STEP_STATE {
+    bigint application_id FK
+    bigint step_id FK
+    varchar step_status_code FK
+    timestamp started_at
+    timestamp completed_at
+    text payload_json
+    varchar error_code
+  }
+
+  EXTERNAL_PROVIDER {
+    bigint provider_id PK
+    varchar provider_code
+    varchar check_type_code FK
+    varchar provider_name
+  }
+
+  CHECK_RUN {
+    bigint check_run_id PK
+    bigint application_id FK
+    bigint party_id FK
+    varchar check_type_code FK
+    bigint provider_id FK
+    varchar correlation_id
+    varchar input_fingerprint
+    timestamp requested_at
+    timestamp completed_at
+    varchar technical_status
+    varchar check_business_result_code FK
+    text response_summary_json
+  }
+
+  DECISION_RULE_SET {
+    bigint rule_set_id PK
+    varchar rule_set_name
+    int rule_set_version
+    timestamp active_from
+    timestamp active_to
+  }
+
+  DECISION_REASON {
+    varchar reason_code PK
+    varchar reason_description
+    varchar severity
+  }
+
+  APPLICATION_DECISION {
+    bigint decision_id PK
+    bigint application_id FK
+    bigint rule_set_id FK
+    varchar decision_outcome_code FK
+    timestamp decided_at
+    varchar decided_by
+    text rationale_json
+  }
+
+  APPLICATION_DECISION_REASON {
+    bigint decision_id FK
+    varchar reason_code FK
+    int rank_order
+    varchar reason_details
+  }
+
+  MANUAL_REVIEW_CASE {
+    bigint manual_review_case_id PK
+    bigint application_id FK
+    varchar review_status
+    varchar assigned_to
+    timestamp opened_at
+    timestamp closed_at
+    varchar resolution_notes
+  }
+
+  AUDIT_EVENT {
+    bigint audit_event_id PK
+    bigint application_id FK
+    bigint party_id FK
+    varchar actor_type
+    varchar actor_id
+    varchar event_type
+    timestamp event_timestamp
+    varchar correlation_id
+    text metadata_json
+    varchar prev_event_hash
+    varchar event_hash
+  }
+
+  COUNTRY ||--o{ ONBOARDING_FLOW : routes
+  PARTY_TYPE ||--o{ ONBOARDING_FLOW : classifies
+  ONBOARDING_FLOW ||--o{ ONBOARDING_STEP : contains
+
+  COUNTRY ||--o{ APPLICATION : selected_in
+  PARTY_TYPE ||--o{ APPLICATION : selected_as
+  ONBOARDING_FLOW ||--o{ APPLICATION : assigned_to
+  APPLICATION_STATUS ||--o{ APPLICATION : status
+  ONBOARDING_STEP ||--o{ APPLICATION : current_step
+
+  APPLICATION ||--o{ APPLICANT_PARTY : has
+  APPLICANT_PARTY ||--o| PERSON_PROFILE : extends_private
+  APPLICANT_PARTY ||--o| BUSINESS_PROFILE : extends_business
+
+  COUNTRY ||--o{ PERSON_PROFILE : nationality
+  COUNTRY ||--o{ BUSINESS_PROFILE : incorporation
+  COUNTRY ||--o{ ADDRESS : located_in
+  APPLICANT_PARTY ||--o{ PARTY_ADDRESS : mapped_to
+  ADDRESS ||--o{ PARTY_ADDRESS : mapped_from
+
+  APPLICATION ||--o{ APPLICATION_STEP_STATE : tracks
+  ONBOARDING_STEP ||--o{ APPLICATION_STEP_STATE : for_step
+  STEP_STATUS ||--o{ APPLICATION_STEP_STATE : with_status
+
+  CHECK_TYPE ||--o{ EXTERNAL_PROVIDER : groups
+  APPLICATION ||--o{ CHECK_RUN : triggers
+  APPLICANT_PARTY ||--o{ CHECK_RUN : evaluated_for
+  CHECK_TYPE ||--o{ CHECK_RUN : type
+  EXTERNAL_PROVIDER ||--o{ CHECK_RUN : executes
+  CHECK_BUSINESS_RESULT ||--o{ CHECK_RUN : yields
+
+  APPLICATION ||--o| APPLICATION_DECISION : concludes
+  DECISION_RULE_SET ||--o{ APPLICATION_DECISION : applies
+  DECISION_OUTCOME ||--o{ APPLICATION_DECISION : outcome
+  APPLICATION_DECISION ||--o{ APPLICATION_DECISION_REASON : explained_by
+  DECISION_REASON ||--o{ APPLICATION_DECISION_REASON : reason
+
+  APPLICATION ||--o| MANUAL_REVIEW_CASE : may_open
+
+  APPLICATION ||--o{ AUDIT_EVENT : logs
+  APPLICANT_PARTY ||--o{ AUDIT_EVENT : actor_subject
