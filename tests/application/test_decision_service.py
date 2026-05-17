@@ -6,7 +6,7 @@ from app.application.domain.onboarding import (
     CheckTypeCode,
     DecisionOutcomeCode,
 )
-from app.application.services.decision_service import DecisionService, RULE_VERSION
+from app.application.services.decision_service import RULE_VERSION, DecisionService
 
 
 def _check_run(

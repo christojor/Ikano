@@ -6,7 +6,6 @@ from app.application.domain.onboarding import (
 )
 from app.application.ports.decision_evaluator_port import DecisionEvaluatorPort
 
-
 RULE_VERSION = "decision-rules/v1"
 
 

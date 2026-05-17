@@ -1,5 +1,5 @@
-from datetime import datetime
 import json
+from datetime import datetime
 
 from app.application.domain.onboarding import ActorType, AuditEvent, AuditEventType
 from app.application.ports.audit_event_repository_port import AuditEventRepositoryPort

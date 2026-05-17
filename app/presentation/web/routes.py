@@ -1,5 +1,5 @@
-from pathlib import Path
 import json
+from pathlib import Path
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -17,8 +17,8 @@ from app.application.domain.exceptions import (
 )
 from app.application.domain.onboarding import (
     ApplicationRecord,
-    ApplicationStepRecord,
     ApplicationStatus,
+    ApplicationStepRecord,
     AuditEvent,
     CheckRunRecord,
     ManualReviewCaseRecord,

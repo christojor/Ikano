@@ -3,6 +3,7 @@ import secrets
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+
 def _generate_dev_secret() -> str:
     # Generated at startup for local/dev to avoid hardcoded credential-like literals.
     return secrets.token_urlsafe(48)
@@ -32,7 +33,7 @@ class Settings(BaseSettings):
     @field_validator("secret_key")
     @classmethod
     def validate_secret_key(cls, value: str) -> str:
-        if len(value) < 32:  # noqa: PLR2004
+        if len(value) < 32:
             raise ValueError("SECRET_KEY must be at least 32 characters")
         return value
 
