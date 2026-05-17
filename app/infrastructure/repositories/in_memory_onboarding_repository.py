@@ -18,9 +18,11 @@ class InMemoryOnboardingRepository:
         self._audit_events: dict[int, list[AuditEvent]] = {}
         self._check_runs: dict[int, list[CheckRunRecord]] = {}
         self._manual_review_cases: dict[int, ManualReviewCaseRecord] = {}
-        self._application_counter = 0
-        self._check_run_counter = 0
-        self._manual_review_counter = 0
+        self._counters = {
+            "application": 0,
+            "check_run": 0,
+            "manual_review": 0,
+        }
 
     def _build_default_flows(self) -> dict[tuple[CountryCode, PartyTypeCode], OnboardingFlow]:
         flows: dict[tuple[CountryCode, PartyTypeCode], OnboardingFlow] = {}
@@ -89,8 +91,7 @@ class InMemoryOnboardingRepository:
         self._applications[application.application_id] = application
 
     def next_application_id(self) -> int:
-        self._application_counter += 1
-        return self._application_counter
+        return self._next_counter("application")
 
     def append_audit_event(self, event: AuditEvent) -> None:
         self._audit_events.setdefault(event.application_id, []).append(event)
@@ -99,8 +100,7 @@ class InMemoryOnboardingRepository:
         return tuple(self._audit_events.get(application_id, []))
 
     def next_check_run_id(self) -> int:
-        self._check_run_counter += 1
-        return self._check_run_counter
+        return self._next_counter("check_run")
 
     def append_check_run(self, check_run: CheckRunRecord) -> None:
         self._check_runs.setdefault(check_run.application_id, []).append(check_run)
@@ -109,8 +109,7 @@ class InMemoryOnboardingRepository:
         return tuple(self._check_runs.get(application_id, []))
 
     def next_manual_review_case_id(self) -> int:
-        self._manual_review_counter += 1
-        return self._manual_review_counter
+        return self._next_counter("manual_review")
 
     def create_manual_review_case(self, case: ManualReviewCaseRecord) -> ManualReviewCaseRecord:
         self._manual_review_cases[case.application_id] = case
@@ -118,3 +117,7 @@ class InMemoryOnboardingRepository:
 
     def get_manual_review_case(self, application_id: int) -> ManualReviewCaseRecord | None:
         return self._manual_review_cases.get(application_id)
+
+    def _next_counter(self, key: str) -> int:
+        self._counters[key] += 1
+        return self._counters[key]

@@ -7,7 +7,7 @@ from app.application.ports.flow_query_port import FlowQueryPort
 from app.application.ports.manual_review_repository_port import ManualReviewRepositoryPort
 
 
-class OnboardingRepository(
+class OnboardingRepositoryPort(
     FlowQueryPort,
     ApplicationRepositoryPort,
     AuditEventRepositoryPort,

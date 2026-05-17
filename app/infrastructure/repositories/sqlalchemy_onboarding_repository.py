@@ -107,11 +107,7 @@ class SQLAlchemyOnboardingRepository:
         self._session.flush()
 
     def next_application_id(self) -> int:
-        return int(
-            self._session.execute(
-                text("SELECT nextval(pg_get_serial_sequence('application', 'application_id'))")
-            ).scalar_one()
-        )
+        return self._next_sequence_value(table_name="application", column_name="application_id")
 
     def append_audit_event(self, event: AuditEvent) -> None:
         self._session.add(
@@ -148,11 +144,7 @@ class SQLAlchemyOnboardingRepository:
         )
 
     def next_check_run_id(self) -> int:
-        return int(
-            self._session.execute(
-                text("SELECT nextval(pg_get_serial_sequence('check_run', 'check_run_id'))")
-            ).scalar_one()
-        )
+        return self._next_sequence_value(table_name="check_run", column_name="check_run_id")
 
     def append_check_run(self, check_run: CheckRunRecord) -> None:
         self._session.add(
@@ -191,12 +183,9 @@ class SQLAlchemyOnboardingRepository:
         )
 
     def next_manual_review_case_id(self) -> int:
-        return int(
-            self._session.execute(
-                text(
-                    "SELECT nextval(pg_get_serial_sequence('manual_review_case', 'manual_review_case_id'))"
-                )
-            ).scalar_one()
+        return self._next_sequence_value(
+            table_name="manual_review_case",
+            column_name="manual_review_case_id",
         )
 
     def create_manual_review_case(self, case: ManualReviewCaseRecord) -> ManualReviewCaseRecord:
@@ -208,12 +197,7 @@ class SQLAlchemyOnboardingRepository:
         )
         self._session.add(model)
         self._session.flush()
-        return ManualReviewCaseRecord(
-            manual_review_case_id=model.manual_review_case_id,
-            application_id=model.application_id,
-            review_status=ManualReviewStatus(model.review_status),
-            opened_at=model.opened_at,
-        )
+        return self._to_manual_review_case(model)
 
     def get_manual_review_case(self, application_id: int) -> ManualReviewCaseRecord | None:
         model = (
@@ -223,11 +207,15 @@ class SQLAlchemyOnboardingRepository:
         )
         if model is None:
             return None
-        return ManualReviewCaseRecord(
-            manual_review_case_id=model.manual_review_case_id,
-            application_id=model.application_id,
-            review_status=ManualReviewStatus(model.review_status),
-            opened_at=model.opened_at,
+        return self._to_manual_review_case(model)
+
+    def _next_sequence_value(self, *, table_name: str, column_name: str) -> int:
+        query = text("SELECT nextval(pg_get_serial_sequence(:table_name, :column_name))")
+        return int(
+            self._session.execute(
+                query,
+                {"table_name": table_name, "column_name": column_name},
+            ).scalar_one()
         )
 
     def _find_step_id(self, flow_id: int, step_code: str) -> int | None:
@@ -260,6 +248,14 @@ class SQLAlchemyOnboardingRepository:
             step_title=model.step_title,
             step_order=model.step_order,
             check_type_code=check_type,
+        )
+
+    def _to_manual_review_case(self, model: ManualReviewCaseModel) -> ManualReviewCaseRecord:
+        return ManualReviewCaseRecord(
+            manual_review_case_id=model.manual_review_case_id,
+            application_id=model.application_id,
+            review_status=ManualReviewStatus(model.review_status),
+            opened_at=model.opened_at,
         )
 
     def _to_application(self, model: ApplicationModel) -> ApplicationRecord:

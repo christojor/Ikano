@@ -22,10 +22,6 @@ def get_onboarding_service(
     repository = SQLAlchemyOnboardingRepository(session=db_session)
     unit_of_work = SQLAlchemyUnitOfWork(session=db_session)
     return OnboardingService(
-        flow_query=repository,
-        application_repository=repository,
-        audit_repository=repository,
-        check_run_repository=repository,
-        manual_review_repository=repository,
+        repository=repository,
         unit_of_work=unit_of_work,
     )
