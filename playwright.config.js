@@ -6,7 +6,7 @@ module.exports = defineConfig({
   retries: process.env.CI ? 2 : 0,
   reporter: [["list"], ["html", { open: "never" }]],
   use: {
-    baseURL: process.env.E2E_BASE_URL || "http://127.0.0.1:8000",
+     baseURL: process.env.E2E_BASE_URL || "http://127.0.0.1:8001",
     trace: "on-first-retry",
     screenshot: "only-on-failure",
     video: "retain-on-failure"
