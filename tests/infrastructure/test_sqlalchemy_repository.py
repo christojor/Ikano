@@ -20,6 +20,7 @@ from app.application.domain.onboarding import (
     ActorType,
     ApplicationRecord,
     ApplicationStatus,
+    ApplicationStepRecord,
     AuditEvent,
     AuditEventType,
     CheckBusinessResultCode,
@@ -29,6 +30,7 @@ from app.application.domain.onboarding import (
     ManualReviewCaseRecord,
     ManualReviewStatus,
     PartyTypeCode,
+    StepStatusCode,
 )
 from app.infrastructure.config import settings
 from app.infrastructure.repositories.sqlalchemy_onboarding_repository import (
@@ -67,7 +69,7 @@ def test_get_active_flow_se_private(repo):
     assert flow is not None
     assert flow.country_code == CountryCode.SE
     assert flow.party_type_code == PartyTypeCode.PRIVATE
-    assert len(flow.steps) == 4
+    assert len(flow.steps) == 7
 
 
 @integration
@@ -158,8 +160,24 @@ def test_update_application_status(repo):
 
 @integration
 def test_append_and_list_audit_events(repo):
+    flow = repo.get_active_flow(CountryCode.SE, PartyTypeCode.PRIVATE)
+    assert flow is not None
     now = datetime.now(UTC)
     application_id = repo.next_application_id()
+
+    # Create application record to satisfy FK constraint
+    app = ApplicationRecord(
+        application_id=application_id,
+        public_reference=f"TEST-{application_id:06d}",
+        country_code=CountryCode.SE,
+        party_type_code=PartyTypeCode.PRIVATE,
+        flow_id=flow.flow_id,
+        current_step_order=1,
+        current_step_code="COLLECT_PRIVATE_PROFILE",
+        status=ApplicationStatus.IN_PROGRESS,
+        created_at=now,
+    )
+    repo.create_application(app)
 
     repo.append_audit_event(
         AuditEvent(
@@ -186,9 +204,25 @@ def test_append_and_list_audit_events(repo):
 
 @integration
 def test_append_and_list_check_runs(repo):
+    flow = repo.get_active_flow(CountryCode.SE, PartyTypeCode.PRIVATE)
+    assert flow is not None
     now = datetime.now(UTC)
     application_id = repo.next_application_id()
     check_run_id = repo.next_check_run_id()
+
+    # Create application record to satisfy FK constraint
+    app = ApplicationRecord(
+        application_id=application_id,
+        public_reference=f"TEST-{application_id:06d}",
+        country_code=CountryCode.SE,
+        party_type_code=PartyTypeCode.PRIVATE,
+        flow_id=flow.flow_id,
+        current_step_order=1,
+        current_step_code="COLLECT_PRIVATE_PROFILE",
+        status=ApplicationStatus.IN_PROGRESS,
+        created_at=now,
+    )
+    repo.create_application(app)
 
     repo.append_check_run(
         CheckRunRecord(
@@ -215,9 +249,25 @@ def test_append_and_list_check_runs(repo):
 
 @integration
 def test_create_and_get_manual_review_case(repo):
+    flow = repo.get_active_flow(CountryCode.SE, PartyTypeCode.PRIVATE)
+    assert flow is not None
     now = datetime.now(UTC)
     application_id = repo.next_application_id()
     review_id = repo.next_manual_review_case_id()
+
+    # Create application record to satisfy FK constraint
+    app = ApplicationRecord(
+        application_id=application_id,
+        public_reference=f"TEST-{application_id:06d}",
+        country_code=CountryCode.SE,
+        party_type_code=PartyTypeCode.PRIVATE,
+        flow_id=flow.flow_id,
+        current_step_order=1,
+        current_step_code="COLLECT_PRIVATE_PROFILE",
+        status=ApplicationStatus.IN_PROGRESS,
+        created_at=now,
+    )
+    repo.create_application(app)
 
     repo.create_manual_review_case(
         ManualReviewCaseRecord(
@@ -232,3 +282,42 @@ def test_create_and_get_manual_review_case(repo):
     assert loaded is not None
     assert loaded.review_status == ManualReviewStatus.OPEN
     assert loaded.application_id == application_id
+
+
+@integration
+def test_append_and_list_application_steps(repo):
+    flow = repo.get_active_flow(CountryCode.SE, PartyTypeCode.PRIVATE)
+    assert flow is not None
+    now = datetime.now(UTC)
+    application_id = repo.next_application_id()
+    step_id = repo.next_application_step_id()
+
+    # Create application record to satisfy FK constraint
+    app = ApplicationRecord(
+        application_id=application_id,
+        public_reference=f"TEST-{application_id:06d}",
+        country_code=CountryCode.SE,
+        party_type_code=PartyTypeCode.PRIVATE,
+        flow_id=flow.flow_id,
+        current_step_order=1,
+        current_step_code="COLLECT_PRIVATE_PROFILE",
+        status=ApplicationStatus.IN_PROGRESS,
+        created_at=now,
+    )
+    repo.create_application(app)
+
+    repo.append_application_step(
+        ApplicationStepRecord(
+            application_step_id=step_id,
+            application_id=application_id,
+            step_code="COLLECT_SE_IDENTITY",
+            step_order=1,
+            step_status_code=StepStatusCode.COMPLETED,
+            payload_snapshot={"identity_number": "199001019999"},
+            completed_at=now,
+        )
+    )
+
+    loaded = repo.list_application_steps(application_id)
+    assert len(loaded) == 1
+    assert loaded[0].step_status_code == StepStatusCode.COMPLETED
