@@ -1,11 +1,13 @@
 const { test, expect } = require("@playwright/test");
 
-async function submitCurrentStep(page) {
-  const currentHeading = await page.getByRole('heading', { level: 1 }).textContent();
-  await page.evaluate(() => {
-    const form = document.getElementById("advance-form");
+async function submitFormAndWaitForTransition(page, formId) {
+  const previousPath = new URL(page.url()).pathname;
+  const previousTitle = await page.title();
+
+  await page.evaluate((targetFormId) => {
+    const form = document.getElementById(targetFormId);
     if (!form) {
-      throw new Error("advance-form not found");
+      throw new Error(`${targetFormId} not found`);
     }
 
     if (typeof form.requestSubmit === "function") {
@@ -14,11 +16,20 @@ async function submitCurrentStep(page) {
     }
 
     form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
-  });
-  await page.waitForFunction((previousHeading) => {
-    const heading = document.querySelector("h1");
-    return heading && heading.textContent && heading.textContent.trim() !== previousHeading;
-  }, currentHeading);
+  }, formId);
+
+  await page.waitForFunction(
+    ({ expectedPreviousPath, expectedPreviousTitle }) => {
+      const currentPath = window.location.pathname;
+      const currentTitle = document.title;
+      return currentPath !== expectedPreviousPath || currentTitle !== expectedPreviousTitle;
+    },
+    { expectedPreviousPath: previousPath, expectedPreviousTitle: previousTitle }
+  );
+}
+
+async function submitCurrentStep(page) {
+  await submitFormAndWaitForTransition(page, "advance-form");
 }
 
 // Helper to complete a flow
@@ -33,22 +44,7 @@ async function completeFlow(page, country, partyType) {
   await page.check(`input[value="${partyType}"]`);
   
   // Submit start form
-  await page.evaluate(() => {
-    const form = document.getElementById("start-form");
-    if (!form) {
-      throw new Error("start-form not found");
-    }
-
-    if (typeof form.requestSubmit === "function") {
-      form.requestSubmit();
-      return;
-    }
-
-    form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
-  });
-  await page.waitForFunction(() => {
-    return window.location.pathname.includes("/step") || window.location.pathname.includes("/result");
-  });
+  await submitFormAndWaitForTransition(page, "start-form");
   
   // Complete steps until final decision page
   for (let i = 0; i < 12; i++) {
@@ -136,22 +132,7 @@ test("Manual review path - choose manual review scenario", async ({ page }) => {
   // Start with SE/PRIVATE
   await page.selectOption('select[name="country_code"]', "SE");
   await page.check('input[value="PRIVATE"]');
-  await page.evaluate(() => {
-    const form = document.getElementById("start-form");
-    if (!form) {
-      throw new Error("start-form not found");
-    }
-
-    if (typeof form.requestSubmit === "function") {
-      form.requestSubmit();
-      return;
-    }
-
-    form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
-  });
-  await page.waitForFunction(() => {
-    return window.location.pathname.includes("/step") || window.location.pathname.includes("/result");
-  });
+  await submitFormAndWaitForTransition(page, "start-form");
   
   // Go through first step
   await submitCurrentStep(page);
@@ -159,22 +140,7 @@ test("Manual review path - choose manual review scenario", async ({ page }) => {
   // At check step, choose MANUAL_REVIEW
   await expect(page.locator('input[value="MANUAL_REVIEW"]')).toBeVisible();
   await page.check('input[value="MANUAL_REVIEW"]');
-  await page.evaluate(() => {
-    const form = document.getElementById("advance-form");
-    if (!form) {
-      throw new Error("advance-form not found");
-    }
-
-    if (typeof form.requestSubmit === "function") {
-      form.requestSubmit();
-      return;
-    }
-
-    form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
-  });
-  await page.waitForFunction(() => {
-    return window.location.pathname.includes("/step") || window.location.pathname.includes("/result");
-  });
+  await submitFormAndWaitForTransition(page, "advance-form");
 
   // Continue with PASS for remaining steps until the final decision page.
   for (let i = 0; i < 10; i++) {
@@ -194,44 +160,14 @@ test("Rejection path - choose fail scenario", async ({ page }) => {
   // Start with ES/BUSINESS
   await page.selectOption('select[name="country_code"]', "ES");
   await page.check('input[value="BUSINESS"]');
-  await page.evaluate(() => {
-    const form = document.getElementById("start-form");
-    if (!form) {
-      throw new Error("start-form not found");
-    }
-
-    if (typeof form.requestSubmit === "function") {
-      form.requestSubmit();
-      return;
-    }
-
-    form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
-  });
-  await page.waitForFunction(() => {
-    return window.location.pathname.includes("/step") || window.location.pathname.includes("/result");
-  });
+  await submitFormAndWaitForTransition(page, "start-form");
   
   // Go through steps, choose FAIL at a check step
   await submitCurrentStep(page);
 
   await expect(page.locator('input[value="FAIL"]')).toBeVisible();
   await page.check('input[value="FAIL"]');
-  await page.evaluate(() => {
-    const form = document.getElementById("advance-form");
-    if (!form) {
-      throw new Error("advance-form not found");
-    }
-
-    if (typeof form.requestSubmit === "function") {
-      form.requestSubmit();
-      return;
-    }
-
-    form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
-  });
-  await page.waitForFunction(() => {
-    return window.location.pathname.includes("/step") || window.location.pathname.includes("/result");
-  });
+  await submitFormAndWaitForTransition(page, "advance-form");
 
   // Continue until the final decision page.
   for (let i = 0; i < 10; i++) {
@@ -301,6 +237,54 @@ test("Navigation - new application from result page", async ({ page }) => {
   await page.click('a:has-text("New Application")');
   await expect(page).toHaveURL(/\/onboarding$/);
   await expect(page.getByRole("heading", { name: "Start Your Application" })).toBeVisible();
+});
+
+test("Navigation - browser history resets loading state on start page", async ({ page }) => {
+  await page.goto("/onboarding");
+  await page.selectOption('select[name="country_code"]', "SE");
+  await page.check('input[value="PRIVATE"]');
+
+  await page.evaluate(() => {
+    const form = document.getElementById("start-form");
+    if (!form) {
+      throw new Error("start-form not found");
+    }
+    form.requestSubmit();
+  });
+
+  await expect(page).toHaveURL(/\/onboarding\/\d+\/step$/);
+
+  await page.goBack();
+  await expect(page).toHaveURL(/\/onboarding$/);
+  await expect(page.locator("#submit-btn")).toBeEnabled();
+  await expect(page.locator("#submit-btn")).toContainText("Start Application");
+
+  await page.goForward();
+  await expect(page).toHaveURL(/\/onboarding\/\d+\/step$/);
+  await expect(page.locator("#advance-btn")).toBeEnabled();
+  await expect(page.locator("#advance-btn")).toContainText("Continue");
+});
+
+test("Navigation - browser history resets loading state on step page", async ({ page }) => {
+  await page.goto("/onboarding");
+  await page.selectOption('select[name="country_code"]', "SE");
+  await page.check('input[value="PRIVATE"]');
+
+  await submitFormAndWaitForTransition(page, "start-form");
+
+  await expect(page).toHaveURL(/\/onboarding\/\d+\/step$/);
+
+  await submitFormAndWaitForTransition(page, "advance-form");
+
+  await page.goBack();
+  if (page.url().match(/\/onboarding$/)) {
+    await expect(page.locator("#submit-btn")).toBeEnabled();
+    await expect(page.locator("#submit-btn")).toContainText("Start Application");
+  } else {
+    await expect(page).toHaveURL(/\/onboarding\/\d+\/step$/);
+    await expect(page.locator("#advance-btn")).toBeEnabled();
+    await expect(page.locator("#advance-btn")).toContainText("Continue");
+  }
 });
 
 test("Progress tracking - progress bar updates", async ({ page }) => {

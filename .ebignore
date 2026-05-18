@@ -1,0 +1,26 @@
+# Exclude local dev and test artifacts from `eb deploy` source bundles.
+# This file is not used when deploying via Dockerrun.aws.json in CI,
+# but is respected if someone runs `eb deploy` manually.
+
+.git
+.venv
+.env
+__pycache__
+.pytest_cache
+.ruff_cache
+.mypy_cache
+*.pyc
+*.pyo
+node_modules
+playwright-report
+test-results
+blob-report
+.pre-commit-config.yaml
+pyproject.toml
+requirements-dev.txt
+tests/
+docs/
+tailwind.config.cjs
+package.json
+package-lock.json
+playwright.config.js

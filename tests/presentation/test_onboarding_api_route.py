@@ -4,19 +4,32 @@ from fastapi.testclient import TestClient
 def _payload_for_step(step_code: str, scenario: str = "PASS") -> dict[str, str]:
     payload = {"scenario": scenario}
 
-    if step_code in {"COLLECT_SE_IDENTITY", "COLLECT_ES_DNI_NIE", "COLLECT_PL_PESEL"}:
-        payload["identity_number"] = "44051401458" if step_code == "COLLECT_PL_PESEL" else "199001019999"
-    elif step_code in {"CONFIRM_SE_CONTACT", "CONFIRM_ES_CONTACT", "CONFIRM_PL_CONTACT"}:
-        payload["email"] = "applicant@example.com"
-    elif step_code in {"COLLECT_SE_AFFORD", "COLLECT_ES_AFFORD", "COLLECT_PL_AFFORD"}:
-        payload["monthly_income"] = "45000"
-    elif step_code in {"RUN_SE_CREDIT", "RUN_ES_CREDIT", "RUN_PL_BIK"}:
-        payload["monthly_income"] = "45000"
-        payload["monthly_expenses"] = "15000"
-    elif step_code in {"REVIEW_SE_SUBMIT", "REVIEW_ES_SUBMIT", "REVIEW_PL_SUBMIT"}:
-        payload["accept_terms"] = "true"
-    elif step_code == "COLLECT_BUSINESS_PROFILE":
-        payload["organization_number"] = "556677-8899"
+    step_payloads: dict[str, dict[str, str]] = {
+        "COLLECT_SE_IDENTITY": {"identity_number": "199001019999"},
+        "COLLECT_ES_DNI_NIE": {"identity_number": "199001019999"},
+        "COLLECT_PL_PESEL": {"identity_number": "44051401458"},
+        "CONFIRM_SE_CONTACT": {"email": "applicant@example.com"},
+        "CONFIRM_ES_CONTACT": {"email": "applicant@example.com"},
+        "CONFIRM_PL_CONTACT": {"email": "applicant@example.com"},
+        "COLLECT_SE_AFFORD": {"monthly_income": "45000"},
+        "COLLECT_ES_AFFORD": {"monthly_income": "45000"},
+        "COLLECT_PL_AFFORD": {"monthly_income": "45000"},
+        "RUN_SE_CREDIT": {"monthly_income": "45000", "monthly_expenses": "15000"},
+        "RUN_ES_CREDIT": {"monthly_income": "45000", "monthly_expenses": "15000"},
+        "RUN_PL_BIK": {"monthly_income": "45000", "monthly_expenses": "15000"},
+        "REVIEW_SE_SUBMIT": {"accept_terms": "true"},
+        "REVIEW_ES_SUBMIT": {"accept_terms": "true"},
+        "REVIEW_PL_SUBMIT": {"accept_terms": "true"},
+        "COLLECT_BUSINESS_PROFILE": {"organization_number": "556677-8899"},
+        "VERIFY_BUSINESS_REPRESENTATIVE": {"representative_identity": "197905059999"},
+        "CAPTURE_BUSINESS_OWNERSHIP": {"ubo_identifier": "UBO-778899"},
+        "RUN_BUSINESS_CREDIT": {"monthly_income": "45000", "monthly_expenses": "15000"},
+        "REVIEW_BUSINESS_SUBMIT": {
+            "accept_terms": "true",
+            "bank_iban": "SE3550000000054910000003",
+        },
+    }
+    payload.update(step_payloads.get(step_code, {}))
 
     return payload
 

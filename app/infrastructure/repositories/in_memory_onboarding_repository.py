@@ -50,6 +50,7 @@ class InMemoryOnboardingRepository:
                         "CONFIRM_SE_CONTACT",
                         "Confirm contact details and address",
                         3,
+                        check_type_code=CheckTypeCode.ADDRESS,
                     ),
                     OnboardingStep(
                         "CAPTURE_SE_CONSENT",
@@ -91,6 +92,7 @@ class InMemoryOnboardingRepository:
                         "CONFIRM_ES_CONTACT",
                         "Confirm contact details, province, and address",
                         3,
+                        check_type_code=CheckTypeCode.ADDRESS,
                     ),
                     OnboardingStep(
                         "CAPTURE_ES_CONSENT",
@@ -132,6 +134,7 @@ class InMemoryOnboardingRepository:
                         "CONFIRM_PL_CONTACT",
                         "Confirm contact details and registered address",
                         3,
+                        check_type_code=CheckTypeCode.ADDRESS,
                     ),
                     OnboardingStep(
                         "CAPTURE_PL_CONSENT",
@@ -180,7 +183,30 @@ class InMemoryOnboardingRepository:
                         3,
                         check_type_code=CheckTypeCode.REGISTRY,
                     ),
-                    OnboardingStep("DECISION", "Apply decision rules", 4),
+                    OnboardingStep(
+                        "VERIFY_BUSINESS_REPRESENTATIVE",
+                        "Verify legal representative identity",
+                        4,
+                        check_type_code=CheckTypeCode.KYC,
+                    ),
+                    OnboardingStep(
+                        "CAPTURE_BUSINESS_OWNERSHIP",
+                        "Capture beneficial ownership and sanctions context",
+                        5,
+                        check_type_code=CheckTypeCode.SANCTIONS,
+                    ),
+                    OnboardingStep(
+                        "RUN_BUSINESS_CREDIT",
+                        "Run business credit and affordability check",
+                        6,
+                        check_type_code=CheckTypeCode.CREDIT,
+                    ),
+                    OnboardingStep(
+                        "REVIEW_BUSINESS_SUBMIT",
+                        "Review authorized signatory details and submit",
+                        7,
+                        check_type_code=CheckTypeCode.BANK,
+                    ),
                 ),
             )
         return flows

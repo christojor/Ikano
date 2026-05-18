@@ -17,10 +17,11 @@ concurrency:
 env:
   PYTHONUNBUFFERED: "1"
   PIP_DISABLE_PIP_VERSION_CHECK: "1"
+  SECURITY_ARTIFACT_RETENTION_DAYS: "30"
 
 jobs:
-  lint_and_security:
-    name: Lint and Security
+  lint_and_typecheck:
+    name: Lint and Typecheck
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
@@ -41,7 +42,6 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements-dev.txt
-          pip install bandit pip-audit
 
       - name: Ruff
         run: ruff check .
@@ -49,17 +49,80 @@ jobs:
       - name: Mypy
         run: mypy app tests alembic
 
-      - name: Bandit
-        run: bandit -r app -q
+  security_policy_gates:
+    name: Security Policy Gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: lint_and_typecheck
 
-      - name: pip-audit
-        run: pip-audit --strict
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+          pip install bandit pip-audit
+
+      - name: Validate security exceptions
+        id: exception_args
+        run: |
+          python .github/scripts/security_exceptions.py validate
+          python .github/scripts/security_exceptions.py trivy-ignorefile .trivyignore.ci
+          {
+            echo "pip_audit_args<<EOF"
+            python .github/scripts/security_exceptions.py pip-audit-args
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Bandit (high severity/high confidence)
+        run: bandit -r app -f json -o bandit-report.json -lll -iii
+
+      - name: pip-audit (strict)
+        run: |
+          read -r -a ignore_args <<< "${{ steps.exception_args.outputs.pip_audit_args }}"
+          pip-audit --strict --format json --output pip-audit-report.json "${ignore_args[@]}"
+
+      - name: Gitleaks (secrets)
+        run: |
+          docker run --rm -v "$PWD:/repo" zricethezav/gitleaks:v8.24.2 detect \
+            --source /repo \
+            --no-git \
+            --redact \
+            --report-format sarif \
+            --report-path /repo/gitleaks.sarif \
+            --exit-code 1
+
+      - name: Upload security gate artifacts
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: security-gates-reports
+          path: |
+            bandit-report.json
+            pip-audit-report.json
+            gitleaks.sarif
+            .trivyignore.ci
+          if-no-files-found: ignore
+          retention-days: ${{ env.SECURITY_ARTIFACT_RETENTION_DAYS }}
 
   python_tests:
     name: Python Tests
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    needs: lint_and_security
+    needs:
+      - lint_and_typecheck
+      - security_policy_gates
 
     services:
       postgres:
@@ -192,8 +255,46 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+
+      - name: Validate security exceptions
+        run: |
+          python .github/scripts/security_exceptions.py validate
+          python .github/scripts/security_exceptions.py trivy-ignorefile .trivyignore.ci
+
+      - name: Build local image for security scan
+        run: docker build -t ikano-ci:${{ github.sha }} .
+
+      - name: Trivy container scan (HIGH/CRITICAL)
+        run: |
+          docker run --rm \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            -v "$PWD:/work" \
+            aquasec/trivy:0.55.2 image \
+            --severity HIGH,CRITICAL \
+            --ignore-unfixed \
+            --format json \
+            --output /work/trivy-image-report.json \
+            --ignorefile /work/.trivyignore.ci \
+            --exit-code 1 \
+            ikano-ci:${{ github.sha }}
+
+      - name: Upload container security artifacts
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: container-security-reports
+          path: |
+            trivy-image-report.json
+            .trivyignore.ci
+          if-no-files-found: ignore
+          retention-days: ${{ env.SECURITY_ARTIFACT_RETENTION_DAYS }}
 
       - name: Log in to Docker Hub
         if: github.ref == 'refs/heads/main'
