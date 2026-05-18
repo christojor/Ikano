@@ -4,19 +4,38 @@ Work sample app.
 ## Stack
 
 - Python 3.12+
-- FastAPI
-- SQLAlchemy + Alembic
-- PostgreSQL
-- Jinja2 (server-rendered UI)
-- Pytest
-- Ruff
-- Docker + Docker Compose
-- Newman/Postman (API testing)
-- Playwright (E2E browser testing)
-- Tailwind CSS + Material Symbols (UI styling and iconography)
+1. Lint and type checks (`ruff`, `mypy`)
+2. Security policy gates (`bandit`, `gitleaks`, `pip-audit`)
+3. Python test suite (`pytest`)
+4. API tests via Newman/Postman
+5. Docker image build + container security scan (Trivy)
+6. Playwright E2E tests as a browser matrix (Chromium, Firefox, WebKit)
 
-## Architecture
+Security policy details, required checks, and the temporary exception workflow are documented in `SECURITY.md`.
 
+Security-minded defaults included:
+
+- Least-privilege workflow permissions (`contents: read`)
+- Concurrency control to cancel superseded runs
+- Enforced secret scanning (`gitleaks` fails on findings)
+- Enforced dependency audit (`pip-audit --strict`)
+- Enforced container vulnerability thresholds (`Trivy` HIGH/CRITICAL)
+- Security scan artifact upload and retention
+
+### Branch Protection (Required for Merge Blocking)
+
+To block merges when checks fail, configure branch protection on `main` and require these status checks:
+
+1. Lint and Typecheck
+2. Security Policy Gates
+3. Python Tests
+4. API Tests (Newman)
+5. Build and Push App Image
+6. E2E (chromium)
+7. E2E (firefox)
+8. E2E (webkit)
+
+Without branch protection configuration, CI checks run but GitHub will not enforce merge blocking.
 Project follows clean architecture boundaries:
 
 - Presentation: FastAPI routes, web templates, request/response mapping

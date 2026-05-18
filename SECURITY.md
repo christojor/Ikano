@@ -70,3 +70,37 @@ The project includes infrastructure tests that verify:
 - API response formats match expected types (prevents information disclosure)
 
 See `tests/infrastructure/` for integration test suites.
+
+## CI Policy Enforcement
+
+Security tooling is enforced as merge-blocking CI checks (when branch protection is configured):
+
+- `Bandit` for SAST (`high` severity and `high` confidence threshold)
+- `Gitleaks` for secret detection (any finding fails)
+- `pip-audit` in strict mode for Python dependency vulnerabilities
+- `Trivy` container image scan with `HIGH,CRITICAL` fail thresholds
+
+Security scan artifacts are retained and discoverable through GitHub Actions artifacts:
+
+- `security-gates-reports`
+- `container-security-reports`
+
+Retention is configured in CI for 30 days.
+
+## Temporary Risk Exception Workflow
+
+Temporary exceptions are stored in `.github/security-exceptions.json` when needed and validated in CI by
+`.github/scripts/security_exceptions.py`.
+
+Rules:
+
+1. Exceptions are temporary (maximum 14 days).
+2. Exceptions must contain approval, rationale, and tracking ticket metadata.
+3. Expired exceptions fail CI.
+4. Exceptions only apply to dependency/container findings (`pip-audit`, `trivy`).
+5. Secret findings are not exception-eligible.
+
+## Consolidated CI Policy Reference
+
+This file is the canonical CI security policy reference for branch protection, artifact retention,
+temporary risk exceptions, and the definition-of-done validation playbook.
