@@ -72,6 +72,21 @@
 </section>
 
 <script>
+  function resetStartFormUi() {
+    const btn = document.getElementById('submit-btn');
+    const errBox = document.getElementById('form-error');
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '<span class="material-symbols-outlined text-base">arrow_forward</span> Start Application';
+    }
+    if (errBox) {
+      errBox.classList.add('hidden');
+    }
+  }
+
+  window.addEventListener('pageshow', resetStartFormUi);
+  resetStartFormUi();
+
   document.getElementById('start-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const form = e.target;

@@ -185,6 +185,21 @@
 <script>
   const applicationId = {{ application.application_id }};
 
+  function resetAdvanceFormUi() {
+    const btn = document.getElementById('advance-btn');
+    const errBox = document.getElementById('advance-error');
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '<span class="material-symbols-outlined text-base">arrow_forward</span> Continue';
+    }
+    if (errBox) {
+      errBox.classList.add('hidden');
+    }
+  }
+
+  window.addEventListener('pageshow', resetAdvanceFormUi);
+  resetAdvanceFormUi();
+
   document.getElementById('advance-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const form = e.target;

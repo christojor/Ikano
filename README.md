@@ -1,88 +1,163 @@
 # Ikano
 Work sample app.
 
-## Stack
+## Purpose
 
-- Python 3.12+
-1. Lint and type checks (`ruff`, `mypy`)
-2. Security policy gates (`bandit`, `gitleaks`, `pip-audit`)
-3. Python test suite (`pytest`)
-4. API tests via Newman/Postman
-5. Docker image build + container security scan (Trivy)
-6. Playwright E2E tests as a browser matrix (Chromium, Firefox, WebKit)
+This project demonstrates a country-aware, customer-type-aware onboarding journey for:
 
-Security policy details, required checks, and the temporary exception workflow are documented in `SECURITY.md`.
+- Sweden, Spain, and Poland
+- Private individual and business applicants
+- Deterministic mocked integrations and explainable final decisions
+
+The design emphasizes adaptability, explicit state transitions, testability, and production-minded controls.
+
+## Technology Stack
+
+- Backend: FastAPI, Pydantic, SQLAlchemy, Alembic
+- Database: PostgreSQL (Docker and CI), with in-memory repository support for tests
+- Frontend: Server-rendered Jinja templates with small JavaScript enhancements
+- Testing: pytest, Newman/Postman, Playwright
+- Quality/Security: Ruff, mypy, Bandit, pip-audit, Gitleaks, Trivy
+
+## Assignment Requirements Coverage
+
+### 1) First Choice and Six Flows
+
+The start screen captures country and account type, then resolves one of six flow variants.
+
+| Country | Private flow | Business flow |
+|---|---|---|
+| Sweden | SE + PRIVATE | SE + BUSINESS |
+| Spain | ES + PRIVATE | ES + BUSINESS |
+| Poland | PL + PRIVATE | PL + BUSINESS |
+
+### 2) Adaptive Journey, Validation, and Progress
+
+- Step definitions are flow-driven (not hardcoded in route handlers).
+- Step pages provide server-side validation and user feedback.
+- Progress is shown per step and persisted in application_step records.
+- Final review/result pages show explainable decision details.
+
+### 3) Mock Integrations and Decision Outcomes
+
+Mocked integration categories:
+
+- KYC
+- KYB
+- SANCTIONS/PEP
+- CREDIT/Affordability
+- REGISTRY
+
+Each check is deterministic and supports:
+
+- PASS
+- MANUAL_REVIEW
+- FAIL
+
+Technical failure simulation is also supported:
+
+- OK
+- TIMEOUT
+- ERROR
+
+Final decision outcomes are deterministic and explainable:
+
+- APPROVED
+- UNDER_REVIEW
+- REJECTED
+
+### 4) Audit Trail and Decision Traceability
+
+The app persists audit events and check runs including correlation IDs, reason codes, rule version, and explanation metadata so support and compliance review can reconstruct why a decision was made.
+
+## Architecture (Mapped to Assignment Expectations)
+
+1. Web layer
+   - FastAPI routes and Jinja templates for start, step, result, and read APIs.
+2. Flow engine
+   - Country/type flow definitions and step ordering persisted in onboarding_flow and onboarding_step.
+3. Application state
+   - Application lifecycle, current step, completed steps, check runs, audit events, and review cases.
+4. Integration layer
+   - Deterministic check adapters behind ports to avoid brittle coupling to external clients.
+5. Decisioning layer
+   - Rule-based decision service mapping check outcomes to approved/manual review/rejected.
+6. Audit layer
+   - Structured event trail without storing sensitive data as raw logs.
+
+Clean architecture boundaries:
+
+- Presentation: routes, request/response mapping, templates
+- Application: orchestration services and business rules
+- Infrastructure: repositories, database models, unit of work
+- Tests: focused on transitions, decisioning, mocks, and E2E paths
+
+## Data Model Overview
+
+Core persisted entities:
+
+- onboarding_flow, onboarding_step: flow configuration and sequence
+- application: selected flow and current lifecycle state
+- application_step: per-step completion status and payload snapshot
+- check_run: check type, business result, technical result fingerprint
+- audit_event: event timeline and structured metadata
+- manual_review_case: case opened for escalated outcomes
+
+This schema supports resumability and supportability by making step progression and integration outcomes queryable over time.
+
+## Onboarding Dataflow Diagram
+
+```mermaid
+flowchart TD
+    A[Customer opens onboarding] --> B[Select country and account type]
+    B --> C[Resolve active flow definition]
+    C --> D[Create application and first step state]
+
+    D --> E[Render current step form]
+    E --> F[Validate payload server-side]
+    F --> G[Persist application_step and STEP_COMPLETED audit event]
+
+    G --> H{Step has check_type?}
+    H -- No --> I[Advance to next configured step]
+    H -- Yes --> J[Run deterministic check adapter]
+
+    J --> K[Persist check_run]
+    K --> L[Append CHECK_COMPLETED audit event]
+    L --> I
+
+    I --> M{More steps?}
+    M -- Yes --> E
+    M -- No --> N[Evaluate decision rules]
+
+    N --> O{Outcome}
+    O -- Approved --> P[Set APPROVED]
+    O -- Manual review --> Q[Set UNDER_REVIEW and create manual_review_case]
+    O -- Rejected --> R[Set REJECTED]
+
+    P --> S[Persist final status and APPLICATION_DECIDED audit event]
+    Q --> S
+    R --> S
+
+    S --> T[Render result page with rule version and reason codes]
+```
+
+## Tradeoffs and Scope Notes
+
+- Private flows are implemented with seven market-specific steps aligned to the assignment matrix.
+- Business flows are intentionally simplified to a smaller, explicit KYB/registry-driven path in this sample to keep the implementation focused within the timebox.
+- Mock integrations are deterministic by design (repeatable tests and demos) rather than probabilistic.
+- Sensitive identity values are validated and processed, but audit metadata stores fingerprints/reason codes instead of raw PII dumps.
+
+## CI and Security Policy
+
+Security policy details, required checks, branch-protection expectations, and temporary exception workflow are documented in SECURITY.md.
 
 Security-minded defaults included:
 
-- Least-privilege workflow permissions (`contents: read`)
-- Concurrency control to cancel superseded runs
-- Enforced secret scanning (`gitleaks` fails on findings)
-- Enforced dependency audit (`pip-audit --strict`)
-- Enforced container vulnerability thresholds (`Trivy` HIGH/CRITICAL)
-- Security scan artifact upload and retention
-
-### Branch Protection (Required for Merge Blocking)
-
-To block merges when checks fail, configure branch protection on `main` and require these status checks:
-
-1. Lint and Typecheck
-2. Security Policy Gates
-3. Python Tests
-4. API Tests (Newman)
-5. Build and Push App Image
-6. E2E (chromium)
-7. E2E (firefox)
-8. E2E (webkit)
-
-Without branch protection configuration, CI checks run but GitHub will not enforce merge blocking.
-Project follows clean architecture boundaries:
-
-- Presentation: FastAPI routes, web templates, request/response mapping
-- Application: Use cases, service orchestration, business rules
-- Infrastructure: Database, repositories, external integrations, config
-- Test: Unit and integration tests grouped by layer
-
-### Repository Design Decision: Composite Port Pattern
-
-The `OnboardingRepository` uses a composite port pattern: a single repository interface with a well-defined contract that is implemented by both SQLAlchemy and in-memory adapters. This design achieves the following benefits:
-
-**Dependency Inversion Principle (DIP):**
-- The application layer (`onboarding/use_cases.py`) depends only on the abstract `OnboardingRepository` interface, not on concrete database implementations.
-- Both SQLAlchemy and in-memory repositories implement the same interface, allowing either to be injected based on environment (production vs. tests).
-
-**Single Responsibility with Clear Boundaries:**
-- The repository owns two cohesive concerns: application lifecycle (start, advance, mark complete) and read access (fetch application details).
-- This avoids splitting onboarding data access across multiple fragmented interfaces.
-- Clients have one clear contract to implement and maintain.
-
-**Reduced Coupling:**
-- Prior design had 5 separate repository ports (OnboardingStartRepository, OnboardingAdvanceRepository, OnboardingFetchRepository, StepRepository, ApplicationSequenceRepository), creating cross-layer dependencies.
-- The composite port eliminates intermediate adapters and reduces method proliferation from 8+ scattered methods to 5 focused methods on a single interface.
-- Concrete implementations (SQLAlchemy and in-memory) no longer require multiple inheritance or parallel port implementations.
-
-**Practical Implementation:**
-The repository interface groups operations by use-case intent:
-```python
-class OnboardingRepository(Protocol):
-    def start(self, country_code: str, party_type_code: str) -> OnboardingApplicationStarted:
-        ...
-    def advance(self, app_id: str, scenario_code: str) -> OnboardingFlowAdvanced:
-        ...
-    def mark_complete(self, app_id: str) -> OnboardingFlowCompleted:
-        ...
-    def mark_rejected(self, app_id: str) -> OnboardingFlowRejected:
-        ...
-    def fetch_by_id(self, app_id: str) -> OnboardingApplicationDetails | None:
-        ...
-```
-
-Both the SQLAlchemy adapter (`infrastructure/repository/sqlalchemy_repository.py`) and in-memory adapter (`infrastructure/repository/inmemory_repository.py`) implement this single interface, each handling their specific persistence mechanism.
-
-**Lessons Learned:**
-- The composite port approach scales well for feature development: new onboarding operations extend the repository with new methods rather than creating new ports.
-- Deduplication was critical: SQLAlchemy and in-memory adapters previously duplicated ID sequencing logic, which is now centralized in the repository implementations themselves.
-- This pattern is well-suited for request-response workflows (onboarding flows) where the repository acts as the gateway to application state.
+- Least-privilege workflow permissions
+- Concurrency cancellation for superseded runs
+- Enforced SAST, secrets, dependency, and container scan gates
+- Security artifact upload with retention for triage and audits
 
 ## Quick Start (Local Python)
 
@@ -162,33 +237,16 @@ Inside Docker network, the app connects to Postgres via `DB_HOST=db` and `DB_POR
 
 GitHub Actions workflow is defined in `.github/workflows/ci.yml` and runs:
 
-1. Lint and security checks (`ruff`, `bandit`, `pip-audit`)
-2. Python test suite (`pytest`)
-3. API tests via Newman/Postman
-4. Docker image build
-5. Playwright E2E tests as a browser matrix (Chromium, Firefox, WebKit)
+1. Lint and type checks (`ruff`, `mypy`)
+2. Security policy gates (`bandit`, `pip-audit`, `gitleaks`)
+3. Python test suite (`pytest`)
+4. API tests via Newman/Postman
+5. Docker image build and Trivy container scan
+6. Playwright E2E tests as a browser matrix (Chromium, Firefox, WebKit)
 
 Security-minded defaults included:
 
 - Least-privilege workflow permissions (`contents: read`)
 - Concurrency control to cancel superseded runs
-- Dependency vulnerability scanning (`pip-audit`)
-- Static security analysis (`bandit`)
-
-## CI/CD Flow Exception (Solo Development)
-
-This repository is currently maintained by one developer for a work-sample context.
-For this reason, commits may be pushed directly to `main`.
-
-In a live team setup, this direct-to-main approach would be replaced with a formal Git strategy
-and protected delivery workflow, including at minimum:
-
-- Branching strategy (for example, trunk-based with short-lived feature branches)
-- Protected `main` branch (no direct pushes)
-- Pull request requirement for all changes
-- Required status checks before merge (lint, type checks, tests, security scans)
-- Minimum reviewer approvals and code owner review for sensitive areas
-- Merge controls (for example, linear history and stale approval dismissal on new commits)
-
-This exception is intentional for delivery speed in a single-developer exercise and should not be
-treated as a production-team governance model.
+- Enforced branch-protection status checks for merge blocking
+- Security artifact retention for investigation and auditability

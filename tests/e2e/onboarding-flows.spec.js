@@ -303,6 +303,72 @@ test("Navigation - new application from result page", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Start Your Application" })).toBeVisible();
 });
 
+test("Navigation - browser history resets loading state on start page", async ({ page }) => {
+  await page.goto("/onboarding");
+  await page.selectOption('select[name="country_code"]', "SE");
+  await page.check('input[value="PRIVATE"]');
+
+  await page.evaluate(() => {
+    const form = document.getElementById("start-form");
+    if (!form) {
+      throw new Error("start-form not found");
+    }
+    form.requestSubmit();
+  });
+
+  await expect(page).toHaveURL(/\/onboarding\/\d+\/step$/);
+
+  await page.goBack();
+  await expect(page).toHaveURL(/\/onboarding$/);
+  await expect(page.locator("#submit-btn")).toBeEnabled();
+  await expect(page.locator("#submit-btn")).toContainText("Start Application");
+
+  await page.goForward();
+  await expect(page).toHaveURL(/\/onboarding\/\d+\/step$/);
+  await expect(page.locator("#advance-btn")).toBeEnabled();
+  await expect(page.locator("#advance-btn")).toContainText("Continue");
+});
+
+test("Navigation - browser history resets loading state on step page", async ({ page }) => {
+  await page.goto("/onboarding");
+  await page.selectOption('select[name="country_code"]', "SE");
+  await page.check('input[value="PRIVATE"]');
+
+  await page.evaluate(() => {
+    const form = document.getElementById("start-form");
+    if (!form) {
+      throw new Error("start-form not found");
+    }
+    form.requestSubmit();
+  });
+
+  await expect(page).toHaveURL(/\/onboarding\/\d+\/step$/);
+
+  const headingBeforeAdvance = await page.getByRole("heading", { level: 1 }).textContent();
+  await page.evaluate(() => {
+    const form = document.getElementById("advance-form");
+    if (!form) {
+      throw new Error("advance-form not found");
+    }
+    form.requestSubmit();
+  });
+
+  await page.waitForFunction((previousHeading) => {
+    const heading = document.querySelector("h1");
+    return heading && heading.textContent && heading.textContent.trim() !== previousHeading;
+  }, headingBeforeAdvance);
+
+  await page.goBack();
+  if (page.url().match(/\/onboarding$/)) {
+    await expect(page.locator("#submit-btn")).toBeEnabled();
+    await expect(page.locator("#submit-btn")).toContainText("Start Application");
+  } else {
+    await expect(page).toHaveURL(/\/onboarding\/\d+\/step$/);
+    await expect(page.locator("#advance-btn")).toBeEnabled();
+    await expect(page.locator("#advance-btn")).toContainText("Continue");
+  }
+});
+
 test("Progress tracking - progress bar updates", async ({ page }) => {
   await page.goto("/onboarding");
   
