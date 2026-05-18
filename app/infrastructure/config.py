@@ -1,4 +1,5 @@
 import secrets
+from urllib.parse import quote_plus
 
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -29,6 +30,7 @@ class Settings(BaseSettings):
     db_name: str = Field(default="ikano", alias="DB_NAME")
     db_user: str = Field(default="ikano", alias="DB_USER")
     db_password: str = Field(default="ikano", alias="DB_PASSWORD")
+    db_sslmode: str = Field(default="", alias="DB_SSLMODE")
 
     @field_validator("secret_key")
     @classmethod
@@ -43,9 +45,12 @@ class Settings(BaseSettings):
 
     @property
     def sqlalchemy_database_uri(self) -> str:
+        user = quote_plus(self.db_user)
+        password = quote_plus(self.db_password)
+        sslmode = self.db_sslmode or ("require" if self.is_production else "disable")
         return (
-            f"postgresql+psycopg://{self.db_user}:{self.db_password}@"
-            f"{self.db_host}:{self.db_port}/{self.db_name}"
+            f"postgresql+psycopg://{user}:{password}@"
+            f"{self.db_host}:{self.db_port}/{self.db_name}?sslmode={sslmode}"
         )
 
     @staticmethod
