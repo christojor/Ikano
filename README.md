@@ -251,3 +251,35 @@ Security-minded defaults included:
 - Concurrency control to cancel superseded runs
 - Enforced branch-protection status checks for merge blocking
 - Security artifact retention for investigation and auditability
+
+## CD and AWS Hosting
+
+Automated deployment is implemented with GitHub Actions in `.github/workflows/cd.yml`.
+
+Production deployment flow:
+
+1. Trigger on `main` pushes.
+2. Build and tag Docker image from repository source.
+3. Push image to Amazon ECR.
+4. Generate `Dockerrun.aws.json` from `Dockerrun.aws.json.template`.
+5. Deploy new application version to AWS Elastic Beanstalk.
+
+AWS runtime architecture:
+
+- Compute/runtime: Elastic Beanstalk Docker environment (`Ikano-onboarding-prod`)
+- Container registry: Amazon ECR
+- Database: Amazon RDS PostgreSQL
+- Region: `eu-north-1`
+
+Production URL:
+
+- App: `http://13.62.117.128/`
+- Onboarding: `http://13.62.117.128/onboarding`
+
+Deployment notes:
+
+- Container startup runs database migrations before application startup (`alembic upgrade head`).
+- Environment variables for database and runtime configuration are managed in Elastic Beanstalk environment settings.
+- CSS build assets are versioned in git for deployment consistency, including `app/presentation/web/static/dist/styles.css`.
+
+For initial AWS setup and required repository/environment secrets, see `docs/aws-cd-setup.md`.
