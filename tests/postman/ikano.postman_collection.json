@@ -396,11 +396,95 @@
           ]
         },
         {
-          "name": "5. Advance — Decision (step 4)",
+          "name": "5. Advance — Representative KYC (step 4, PASS)",
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\"scenario\": \"PASS\"}" },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"scenario\": \"PASS\", \"representative_identity\": \"197905059999\"}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/onboarding/{{mrApplicationId}}/advance",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "onboarding", "{{mrApplicationId}}", "advance"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Moved to step 5', () => pm.expect(pm.response.json().current_step_order).to.eql(5));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6. Advance — Beneficial ownership and sanctions (step 5, PASS)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"scenario\": \"PASS\", \"ubo_identifier\": \"UBO-778899\"}" },
+            "url": {
+              "raw": "{{baseUrl}}/api/onboarding/{{mrApplicationId}}/advance",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "onboarding", "{{mrApplicationId}}", "advance"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Moved to step 6', () => pm.expect(pm.response.json().current_step_order).to.eql(6));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "7. Advance — Business credit (step 6, PASS)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"scenario\": \"PASS\", \"monthly_income\": \"45000\", \"monthly_expenses\": \"15000\"}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/onboarding/{{mrApplicationId}}/advance",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "onboarding", "{{mrApplicationId}}", "advance"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Moved to step 7', () => pm.expect(pm.response.json().current_step_order).to.eql(7));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "8. Advance — Authorized signatory and bank check (step 7)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"scenario\": \"PASS\", \"accept_terms\": \"true\", \"bank_iban\": \"ES9121000418450200051332\"}"
+            },
             "url": {
               "raw": "{{baseUrl}}/api/onboarding/{{mrApplicationId}}/advance",
               "host": ["{{baseUrl}}"],

@@ -411,7 +411,9 @@ VALUES
     ('KYB', 'Know Your Business'),
     ('SANCTIONS', 'Sanctions screening'),
     ('CREDIT', 'Credit bureau check'),
-    ('REGISTRY', 'Business registry check');
+    ('REGISTRY', 'Business registry check'),
+    ('ADDRESS', 'Address verification check'),
+    ('BANK', 'Bank account ownership check');
 
 INSERT INTO check_business_result (check_business_result_code, description)
 VALUES

@@ -19,6 +19,8 @@ def test_each_check_type_uses_stable_adapter_name() -> None:
     assert results[CheckTypeCode.SANCTIONS].adapter_name == "SANCTIONS_DETERMINISTIC_ADAPTER"
     assert results[CheckTypeCode.CREDIT].adapter_name == "CREDIT_DETERMINISTIC_ADAPTER"
     assert results[CheckTypeCode.REGISTRY].adapter_name == "REGISTRY_DETERMINISTIC_ADAPTER"
+    assert results[CheckTypeCode.ADDRESS].adapter_name == "ADDRESS_DETERMINISTIC_ADAPTER"
+    assert results[CheckTypeCode.BANK].adapter_name == "BANK_DETERMINISTIC_ADAPTER"
 
 
 def test_timeout_scenario_forces_manual_review_and_persists_technical_result() -> None:

@@ -33,12 +33,16 @@ class StepPayloadValidationService:
             "COLLECT_ES_AFFORD": self._validate_collect_affordability,
             "COLLECT_PL_AFFORD": self._validate_collect_affordability,
             "COLLECT_BUSINESS_PROFILE": self._validate_collect_business_profile,
+            "VERIFY_BUSINESS_REPRESENTATIVE": self._validate_verify_business_representative,
+            "CAPTURE_BUSINESS_OWNERSHIP": self._validate_capture_business_ownership,
             "RUN_SE_CREDIT": self._validate_credit_inputs,
             "RUN_ES_CREDIT": self._validate_credit_inputs,
             "RUN_PL_BIK": self._validate_credit_inputs,
+            "RUN_BUSINESS_CREDIT": self._validate_credit_inputs,
             "REVIEW_SE_SUBMIT": self._validate_review_submit,
             "REVIEW_ES_SUBMIT": self._validate_review_submit,
             "REVIEW_PL_SUBMIT": self._validate_review_submit,
+            "REVIEW_BUSINESS_SUBMIT": self._validate_review_business_submit,
         }
 
         validator = step_validators.get(step_code)
@@ -75,6 +79,12 @@ class StepPayloadValidationService:
     def _validate_collect_business_profile(self, payload: dict[str, str]) -> None:
         self._require_alnum(payload, field="organization_number", min_len=6, max_len=20)
 
+    def _validate_verify_business_representative(self, payload: dict[str, str]) -> None:
+        self._require_alnum(payload, field="representative_identity", min_len=6, max_len=20)
+
+    def _validate_capture_business_ownership(self, payload: dict[str, str]) -> None:
+        self._require_alnum(payload, field="ubo_identifier", min_len=6, max_len=24)
+
     def _validate_credit_inputs(self, payload: dict[str, str]) -> None:
         self._require_positive_int(payload, field="monthly_income")
         self._require_positive_int(payload, field="monthly_expenses")
@@ -82,6 +92,10 @@ class StepPayloadValidationService:
     def _validate_review_submit(self, payload: dict[str, str]) -> None:
         if payload.get("accept_terms", "").lower() not in {"true", "1", "yes", "on"}:
             raise InvalidStepPayloadError("Terms must be accepted before submission")
+
+    def _validate_review_business_submit(self, payload: dict[str, str]) -> None:
+        self._validate_review_submit(payload)
+        self._require_alnum(payload, field="bank_iban", min_len=10, max_len=34)
 
     def _require_value(self, payload: dict[str, str], *, field: str) -> str:
         value = payload.get(field, "").strip()

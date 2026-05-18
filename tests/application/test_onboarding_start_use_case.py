@@ -15,19 +15,32 @@ def _payload_for_step(
 ) -> dict[str, str]:
     payload = {"scenario": scenario, "technical_scenario": technical_scenario}
 
-    if step_code in {"COLLECT_SE_IDENTITY", "COLLECT_ES_DNI_NIE", "COLLECT_PL_PESEL"}:
-        payload["identity_number"] = "44051401458" if step_code == "COLLECT_PL_PESEL" else "199001019999"
-    elif step_code in {"CONFIRM_SE_CONTACT", "CONFIRM_ES_CONTACT", "CONFIRM_PL_CONTACT"}:
-        payload["email"] = "applicant@example.com"
-    elif step_code in {"COLLECT_SE_AFFORD", "COLLECT_ES_AFFORD", "COLLECT_PL_AFFORD"}:
-        payload["monthly_income"] = "45000"
-    elif step_code in {"RUN_SE_CREDIT", "RUN_ES_CREDIT", "RUN_PL_BIK"}:
-        payload["monthly_income"] = "45000"
-        payload["monthly_expenses"] = "15000"
-    elif step_code == "COLLECT_BUSINESS_PROFILE":
-        payload["organization_number"] = "556677-8899"
-    elif step_code in {"REVIEW_SE_SUBMIT", "REVIEW_ES_SUBMIT", "REVIEW_PL_SUBMIT"}:
-        payload["accept_terms"] = "true"
+    step_payloads: dict[str, dict[str, str]] = {
+        "COLLECT_SE_IDENTITY": {"identity_number": "199001019999"},
+        "COLLECT_ES_DNI_NIE": {"identity_number": "199001019999"},
+        "COLLECT_PL_PESEL": {"identity_number": "44051401458"},
+        "CONFIRM_SE_CONTACT": {"email": "applicant@example.com"},
+        "CONFIRM_ES_CONTACT": {"email": "applicant@example.com"},
+        "CONFIRM_PL_CONTACT": {"email": "applicant@example.com"},
+        "COLLECT_SE_AFFORD": {"monthly_income": "45000"},
+        "COLLECT_ES_AFFORD": {"monthly_income": "45000"},
+        "COLLECT_PL_AFFORD": {"monthly_income": "45000"},
+        "RUN_SE_CREDIT": {"monthly_income": "45000", "monthly_expenses": "15000"},
+        "RUN_ES_CREDIT": {"monthly_income": "45000", "monthly_expenses": "15000"},
+        "RUN_PL_BIK": {"monthly_income": "45000", "monthly_expenses": "15000"},
+        "COLLECT_BUSINESS_PROFILE": {"organization_number": "556677-8899"},
+        "VERIFY_BUSINESS_REPRESENTATIVE": {"representative_identity": "197905059999"},
+        "CAPTURE_BUSINESS_OWNERSHIP": {"ubo_identifier": "UBO-778899"},
+        "RUN_BUSINESS_CREDIT": {"monthly_income": "45000", "monthly_expenses": "15000"},
+        "REVIEW_SE_SUBMIT": {"accept_terms": "true"},
+        "REVIEW_ES_SUBMIT": {"accept_terms": "true"},
+        "REVIEW_PL_SUBMIT": {"accept_terms": "true"},
+        "REVIEW_BUSINESS_SUBMIT": {
+            "accept_terms": "true",
+            "bank_iban": "SE3550000000054910000003",
+        },
+    }
+    payload.update(step_payloads.get(step_code, {}))
 
     return payload
 
@@ -218,7 +231,7 @@ def test_timeout_and_error_paths_are_persisted_in_audit_metadata(
         application_id=updated.application_id,
         payload=_payload_for_step(updated.current_step_code, scenario="PASS", technical_scenario="TIMEOUT"),
     )
-    # Step 3 has no check.
+    # Step 3 (ADDRESS) pass path.
     updated = onboarding_service.advance_step(
         application_id=updated.application_id,
         payload=_payload_for_step(updated.current_step_code, scenario="PASS"),
@@ -232,11 +245,67 @@ def test_timeout_and_error_paths_are_persisted_in_audit_metadata(
     events = onboarding_service.get_audit_events(application_id=updated.application_id)
     check_events = [event for event in events if event.event_type == "CHECK_COMPLETED"]
 
-    assert len(check_events) == 2
+    assert len(check_events) == 3
     assert check_events[0].metadata["check_technical_result_code"] == "TIMEOUT"
     assert check_events[0].metadata["check_business_result_code"] == "MANUAL_REVIEW"
-    assert check_events[1].metadata["check_technical_result_code"] == "ERROR"
-    assert check_events[1].metadata["check_business_result_code"] == "FAIL"
+    assert check_events[1].metadata["check_technical_result_code"] == "OK"
+    assert check_events[1].metadata["check_business_result_code"] == "PASS"
+    assert check_events[2].metadata["check_technical_result_code"] == "ERROR"
+    assert check_events[2].metadata["check_business_result_code"] == "FAIL"
+
+
+def test_business_flow_has_seven_steps_and_can_approve(
+    onboarding_service: OnboardingService,
+) -> None:
+    application = onboarding_service.start_application(country_code="SE", party_type_code="BUSINESS")
+    flow = onboarding_service.get_flow_for_application(application.application_id)
+
+    assert len(flow.steps) == 7
+
+    updated = application
+    for _ in range(len(flow.steps)):
+        updated = onboarding_service.advance_step(
+            application_id=updated.application_id,
+            payload=_payload_for_step(updated.current_step_code, "PASS"),
+        )
+
+    assert updated.status == ApplicationStatus.APPROVED
+
+
+def test_business_flow_manual_review_path_creates_case(
+    onboarding_service: OnboardingService,
+) -> None:
+    application = onboarding_service.start_application(country_code="ES", party_type_code="BUSINESS")
+    flow = onboarding_service.get_flow_for_application(application.application_id)
+
+    updated = application
+    for _ in range(len(flow.steps)):
+        scenario = "MANUAL_REVIEW" if updated.current_step_code == "RUN_KYB" else "PASS"
+        updated = onboarding_service.advance_step(
+            application_id=updated.application_id,
+            payload=_payload_for_step(updated.current_step_code, scenario),
+        )
+
+    case = onboarding_service.get_manual_review_case(application_id=updated.application_id)
+    assert updated.status == ApplicationStatus.UNDER_REVIEW
+    assert case is not None
+
+
+def test_business_flow_rejects_when_bank_check_fails(
+    onboarding_service: OnboardingService,
+) -> None:
+    application = onboarding_service.start_application(country_code="PL", party_type_code="BUSINESS")
+    flow = onboarding_service.get_flow_for_application(application.application_id)
+
+    updated = application
+    for _ in range(len(flow.steps)):
+        scenario = "FAIL" if updated.current_step_code == "REVIEW_BUSINESS_SUBMIT" else "PASS"
+        updated = onboarding_service.advance_step(
+            application_id=updated.application_id,
+            payload=_payload_for_step(updated.current_step_code, scenario),
+        )
+
+    assert updated.status == ApplicationStatus.REJECTED
 
 
 def test_application_decision_event_includes_reason_codes_and_rule_version(

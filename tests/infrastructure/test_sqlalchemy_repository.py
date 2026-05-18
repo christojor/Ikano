@@ -78,6 +78,7 @@ def test_get_active_flow_pl_business(repo):
     assert flow is not None
     assert flow.country_code == CountryCode.PL
     assert flow.party_type_code == PartyTypeCode.BUSINESS
+    assert len(flow.steps) == 7
 
 
 @integration

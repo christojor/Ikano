@@ -98,11 +98,51 @@
         required
       />
     </div>
+    {% elif step.step_code == "VERIFY_BUSINESS_REPRESENTATIVE" %}
+    <div>
+      <label for="representative_identity" class="block text-sm font-semibold text-slate-700">Representative identity number</label>
+      <input
+        id="representative_identity"
+        name="representative_identity"
+        type="text"
+        class="mt-2 block w-full rounded-md border border-slate-300 bg-white px-4 py-2.5 text-sm shadow-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+        value="197905059999"
+        required
+      />
+    </div>
+    {% elif step.step_code == "CAPTURE_BUSINESS_OWNERSHIP" %}
+    <div>
+      <label for="ubo_identifier" class="block text-sm font-semibold text-slate-700">Ultimate beneficial owner identifier</label>
+      <input
+        id="ubo_identifier"
+        name="ubo_identifier"
+        type="text"
+        class="mt-2 block w-full rounded-md border border-slate-300 bg-white px-4 py-2.5 text-sm shadow-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+        value="UBO-778899"
+        required
+      />
+    </div>
     {% elif step.step_code in ["REVIEW_SE_SUBMIT", "REVIEW_ES_SUBMIT", "REVIEW_PL_SUBMIT"] %}
     <label class="flex items-center gap-3 cursor-pointer rounded-lg border border-slate-200 p-3 hover:bg-slate-50 has-[:checked]:border-brand-500 has-[:checked]:bg-red-50">
       <input type="checkbox" name="accept_terms" value="true" class="accent-brand-500" checked required />
       <span class="text-sm font-medium text-slate-800">I have reviewed the summary and accept the terms.</span>
     </label>
+    {% elif step.step_code == "REVIEW_BUSINESS_SUBMIT" %}
+    <label class="flex items-center gap-3 cursor-pointer rounded-lg border border-slate-200 p-3 hover:bg-slate-50 has-[:checked]:border-brand-500 has-[:checked]:bg-red-50">
+      <input type="checkbox" name="accept_terms" value="true" class="accent-brand-500" checked required />
+      <span class="text-sm font-medium text-slate-800">I am an authorized signatory and accept the terms.</span>
+    </label>
+    <div>
+      <label for="bank_iban" class="mt-4 block text-sm font-semibold text-slate-700">Business settlement IBAN</label>
+      <input
+        id="bank_iban"
+        name="bank_iban"
+        type="text"
+        class="mt-2 block w-full rounded-md border border-slate-300 bg-white px-4 py-2.5 text-sm shadow-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+        value="SE3550000000054910000003"
+        required
+      />
+    </div>
     {% endif %}
 
     {% if step.check_type_code %}

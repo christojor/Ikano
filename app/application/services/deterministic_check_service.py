@@ -56,6 +56,11 @@ class DeterministicCheckService(CheckEvaluatorPort):
                 CheckTypeCode.REGISTRY,
                 "REGISTRY_DETERMINISTIC_ADAPTER",
             ),
+            CheckTypeCode.ADDRESS: _CheckAdapter(
+                CheckTypeCode.ADDRESS,
+                "ADDRESS_DETERMINISTIC_ADAPTER",
+            ),
+            CheckTypeCode.BANK: _CheckAdapter(CheckTypeCode.BANK, "BANK_DETERMINISTIC_ADAPTER"),
         }
 
     def evaluate(

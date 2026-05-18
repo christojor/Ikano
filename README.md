@@ -47,6 +47,8 @@ Mocked integration categories:
 - SANCTIONS/PEP
 - CREDIT/Affordability
 - REGISTRY
+- ADDRESS
+- BANK
 
 Each check is deterministic and supports:
 
@@ -143,8 +145,7 @@ flowchart TD
 
 ## Tradeoffs and Scope Notes
 
-- Private flows are implemented with seven market-specific steps aligned to the assignment matrix.
-- Business flows are intentionally simplified to a smaller, explicit KYB/registry-driven path in this sample to keep the implementation focused within the timebox.
+- Private and business flows are implemented as seven-step journeys per market, with explicit address and bank verification boundaries.
 - Mock integrations are deterministic by design (repeatable tests and demos) rather than probabilistic.
 - Sensitive identity values are validated and processed, but audit metadata stores fingerprints/reason codes instead of raw PII dumps.
 

@@ -38,6 +38,8 @@ class CheckTypeCode(StrEnum):
     SANCTIONS = "SANCTIONS"
     CREDIT = "CREDIT"
     REGISTRY = "REGISTRY"
+    ADDRESS = "ADDRESS"
+    BANK = "BANK"
 
 
 class CheckBusinessResultCode(StrEnum):
