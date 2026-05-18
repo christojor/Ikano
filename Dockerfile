@@ -17,4 +17,6 @@ COPY . /app
 
 EXPOSE 8000
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Run database migrations then start the application.
+# Alembic migrations are idempotent, so this is safe on every container start.
+CMD ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"]

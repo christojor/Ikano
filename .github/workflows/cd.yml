@@ -1,0 +1,71 @@
+name: cd
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Never cancel an in-flight deploy — let it finish before starting the next.
+concurrency:
+  group: cd-production
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: eu-north-1
+  ECR_REPOSITORY: ikano-onboarding
+  EB_APPLICATION: ikano-onboarding
+  EB_ENVIRONMENT: ikano-onboarding-prod
+
+jobs:
+  deploy:
+    name: Deploy to AWS Elastic Beanstalk
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build, tag, and push Docker image to ECR
+        id: build-image
+        env:
+          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          IMAGE="$REGISTRY/${{ env.ECR_REPOSITORY }}:$IMAGE_TAG"
+          docker build -t "$IMAGE" .
+          docker push "$IMAGE"
+          echo "image=$IMAGE" >> "$GITHUB_OUTPUT"
+
+      - name: Generate Dockerrun.aws.json from template
+        env:
+          IMAGE: ${{ steps.build-image.outputs.image }}
+        run: sed "s|<IMAGE>|$IMAGE|g" Dockerrun.aws.json.template > Dockerrun.aws.json
+
+      - name: Deploy to Elastic Beanstalk
+        uses: einaregilsson/beanstalk-deploy@v22
+        with:
+          aws_access_key: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws_secret_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          application_name: ${{ env.EB_APPLICATION }}
+          environment_name: ${{ env.EB_ENVIRONMENT }}
+          region: ${{ env.AWS_REGION }}
+          version_label: ${{ github.sha }}
+          deployment_package: Dockerrun.aws.json
+          # Wait up to 10 min for the environment to stabilise after deploy.
+          wait_for_environment_recovery: 600
