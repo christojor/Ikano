@@ -2,8 +2,8 @@
   <!-- Red background bar -->
   <rect width="200" height="100" fill="#EC0000"/>
   
-  <!-- IKANO text (white) -->
-  <text x="10" y="35" font-family="Arial, sans-serif" font-size="28" font-weight="bold" fill="white" letter-spacing="2">IKANO</text>
+  <!-- BANANA text (white) -->
+  <text x="10" y="35" font-family="Arial, sans-serif" font-size="28" font-weight="bold" fill="white" letter-spacing="2">BANANA</text>
   
   <!-- BANK text (white, on bottom bar) -->
   <rect x="0" y="50" width="200" height="50" fill="#EC0000"/>

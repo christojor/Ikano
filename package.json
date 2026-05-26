@@ -1,8 +1,8 @@
 {
-  "name": "ikano-work-sample-tests",
+  "name": "onboarding-work-sample-tests",
   "version": "0.1.0",
   "private": true,
-  "description": "API and E2E testing toolchain for Ikano work sample app",
+  "description": "API and E2E testing toolchain for Banana Bank onboarding app",
   "engines": {
     "node": ">=20"
   },
@@ -12,8 +12,8 @@
     "docker:logs": "docker compose logs -f web",
     "docker:up": "docker compose up --build -d",
     "watch:css": "tailwindcss -i ./app/presentation/web/static/src/styles.css -o ./app/presentation/web/static/dist/styles.css --watch",
-    "test:api": "newman run tests/postman/ikano.postman_collection.json --environment tests/postman/local.postman_environment.json",
-    "test:api:ci": "newman run tests/postman/ikano.postman_collection.json --environment tests/postman/ci.postman_environment.json",
+    "test:api": "newman run tests/postman/onboarding.postman_collection.json --environment tests/postman/local.postman_environment.json",
+    "test:api:ci": "newman run tests/postman/onboarding.postman_collection.json --environment tests/postman/ci.postman_environment.json",
     "test:e2e": "playwright test",
     "test:e2e:chromium": "playwright test --project=chromium",
     "test:e2e:firefox": "playwright test --project=firefox",

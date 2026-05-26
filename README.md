@@ -1,4 +1,4 @@
-# Ikano
+# Onboarding
 Work sample app.
 
 ## Purpose
@@ -266,7 +266,7 @@ Production deployment flow:
 
 AWS runtime architecture:
 
-- Compute/runtime: Elastic Beanstalk Docker environment (`Ikano-onboarding-prod`)
+- Compute/runtime: Elastic Beanstalk Docker environment (`Onboarding-prod`)
 - Container registry: Amazon ECR
 - Database: Amazon RDS PostgreSQL
 - Region: `eu-north-1`

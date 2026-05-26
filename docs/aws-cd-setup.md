@@ -17,7 +17,7 @@ every merge to `main` deploys automatically via the `cd.yml` workflow.
 
 1. Open the [AWS IAM Console](https://console.aws.amazon.com/iam/)
 2. Click **Users → Create user**
-3. Username: `ikano-cicd`
+3. Username: `onboarding-cicd`
 4. Select **"Provide user access to the AWS Management Console"** → **No** (skip console)
 5. Click **Next → Attach policies directly**
 6. Search and attach **all three** of these managed policies:
@@ -39,7 +39,7 @@ every merge to `main` deploys automatically via the `cd.yml` workflow.
 1. Open the [Amazon ECR Console](https://console.aws.amazon.com/ecr/) in **eu-north-1**
 2. Click **Create repository**
 3. Visibility: **Private**
-4. Repository name: `ikano-onboarding`
+4. Repository name: `onboarding`
 5. Leave all other settings as default → **Create repository**
 
 ---
@@ -54,18 +54,18 @@ every merge to `main` deploys automatically via the `cd.yml` workflow.
    | Engine | PostgreSQL |
    | Version | 16.x |
    | Template | Free tier (dev) or Production |
-   | DB identifier | `ikano-onboarding-db` |
-   | Master username | `ikano_app` |
+   | DB identifier | `onboarding-db` |
+   | Master username | `onboarding_app` |
    | Master password | *(generate a strong random password — save it)* |
    | DB instance class | `db.t4g.micro` (free tier) or `db.t3.small` |
    | Storage | 20 GiB gp3 |
    | VPC | **Default VPC** |
    | Public access | **No** |
-   | VPC security group | Create new: `rds-ikano` |
-   | Initial database name | `ikano_prod` |
+   | VPC security group | Create new: `rds-onboarding` |
+   | Initial database name | `onboarding_prod` |
 
 4. Click **Create database** and wait ~5 min for it to become Available
-5. Note the **Endpoint** hostname (e.g. `ikano-onboarding-db.xxxx.eu-north-1.rds.amazonaws.com`)
+5. Note the **Endpoint** hostname (e.g. `onboarding-db.xxxx.eu-north-1.rds.amazonaws.com`)
 
 ---
 
@@ -73,10 +73,10 @@ every merge to `main` deploys automatically via the `cd.yml` workflow.
 
 1. Open the [Elastic Beanstalk Console](https://console.aws.amazon.com/elasticbeanstalk/) in **eu-north-1**
 2. Click **Create application**
-3. Application name: `ikano-onboarding`
+3. Application name: `onboarding`
 4. Click **Create environment**
 5. Environment tier: **Web server environment**
-6. Environment name: `ikano-onboarding-prod`
+6. Environment name: `onboarding-prod`
 7. Platform: **Docker** (Managed platform, latest version)
 8. Application code: **Sample application** (the first real deployment comes from CI)
 9. Preset: **Single instance** (or High availability if you need it)
@@ -92,7 +92,7 @@ The EB EC2 instance must be allowed to reach the RDS instance.
 1. Open the [EC2 Console → Security Groups](https://console.aws.amazon.com/ec2/#SecurityGroups)
 2. Find the security group attached to your EB environment (named something like `awseb-...`)
 3. Note its **Security Group ID** (e.g. `sg-0abc123`)
-4. Open the `rds-ikano` security group you created in Step 3
+4. Open the `rds-onboarding` security group you created in Step 3
 5. Click **Edit inbound rules → Add rule**:
    - Type: `PostgreSQL`
    - Port: `5432`
@@ -103,7 +103,7 @@ The EB EC2 instance must be allowed to reach the RDS instance.
 
 ## Step 6 — Set Environment Variables in Elastic Beanstalk
 
-1. In the EB Console, open `ikano-onboarding-prod` → **Configuration**
+1. In the EB Console, open `onboarding-prod` → **Configuration**
 2. Click **Edit** on the **Environment properties** section
 3. Add all of the following:
 
@@ -114,8 +114,8 @@ The EB EC2 instance must be allowed to reach the RDS instance.
    | `SECRET_KEY` | *(run `python -c "import secrets; print(secrets.token_urlsafe(48))"` locally)* |
    | `DB_HOST` | *(RDS endpoint from Step 3)* |
    | `DB_PORT` | `5432` |
-   | `DB_NAME` | `ikano_prod` |
-   | `DB_USER` | `ikano_app` |
+   | `DB_NAME` | `onboarding_prod` |
+   | `DB_USER` | `onboarding_app` |
    | `DB_PASSWORD` | *(RDS master password from Step 3)* |
 
 4. Click **Apply** and wait for the environment to update
@@ -156,7 +156,7 @@ Watch the workflow run — it will:
 
 Your app will be live at:
 ```
-http://ikano-onboarding-prod.eu-north-1.elasticbeanstalk.com
+http://onboarding-prod.eu-north-1.elasticbeanstalk.com
 ```
 
 ---
@@ -187,9 +187,9 @@ App live at EB URL
 
 ## Checklist Before First Deploy
 
-- [ ] IAM user `ikano-cicd` created with access keys
-- [ ] ECR repository `ikano-onboarding` created in eu-north-1
-- [ ] RDS instance `ikano-onboarding-db` created and Available
+- [ ] IAM user `onboarding-cicd` created with access keys
+- [ ] ECR repository `onboarding` created in eu-north-1
+- [ ] RDS instance `onboarding-db` created and Available
 - [ ] EB security group whitelisted in RDS inbound rules
 - [ ] EB environment variables set (DB_HOST, DB_PASSWORD, SECRET_KEY, etc.)
 - [ ] GitHub secrets `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` added

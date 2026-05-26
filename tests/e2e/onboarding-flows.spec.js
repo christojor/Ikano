@@ -219,7 +219,7 @@ test("Navigation - back to home from start page", async ({ page }) => {
   
   await page.click('a:has-text("Back to home")');
   await expect(page).toHaveURL(/\/$/);
-  await expect(page.getByRole("heading", { name: "Welcome to Ikano Bank" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Welcome to Banana Bank" })).toBeVisible();
 });
 
 test("Navigation - header logo returns to home", async ({ page }) => {

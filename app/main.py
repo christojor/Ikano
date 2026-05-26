@@ -45,9 +45,9 @@ def create_app() -> FastAPI:
     - Request/response validation via Pydantic models
     """
     app = FastAPI(
-        title="Ikano Bank Onboarding API",
+        title="Banana Bank Onboarding API",
         description=(
-            "Comprehensive KYC/KYB onboarding API for Ikano Bank. "
+            "Comprehensive KYC/KYB onboarding API for Banana Bank. "
             "Manages multi-country onboarding flows for private and business applicants. "
             "Includes compliance checks, decision rules, audit trails, and manual review workflows."
         ),

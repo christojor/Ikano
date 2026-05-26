@@ -126,9 +126,9 @@ jobs:
       postgres:
         image: postgres:16
         env:
-          POSTGRES_USER: ikano
-          POSTGRES_PASSWORD: ikano
-          POSTGRES_DB: ikano
+          POSTGRES_USER: onboarding
+          POSTGRES_PASSWORD: onboarding
+          POSTGRES_DB: onboarding
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
@@ -140,9 +140,9 @@ jobs:
     env:
       DB_HOST: localhost
       DB_PORT: 5432
-      DB_NAME: ikano
-      DB_USER: ikano
-      DB_PASSWORD: ikano
+      DB_NAME: onboarding
+      DB_USER: onboarding
+      DB_PASSWORD: onboarding
       INTEGRATION_TESTS: "1"
 
     steps:
@@ -179,9 +179,9 @@ jobs:
       postgres:
         image: postgres:16
         env:
-          POSTGRES_USER: ikano
-          POSTGRES_PASSWORD: ikano
-          POSTGRES_DB: ikano
+          POSTGRES_USER: onboarding
+          POSTGRES_PASSWORD: onboarding
+          POSTGRES_DB: onboarding
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
@@ -193,9 +193,9 @@ jobs:
     env:
       DB_HOST: localhost
       DB_PORT: 5432
-      DB_NAME: ikano
-      DB_USER: ikano
-      DB_PASSWORD: ikano
+      DB_NAME: onboarding
+      DB_USER: onboarding
+      DB_PASSWORD: onboarding
 
     steps:
       - name: Checkout
@@ -267,7 +267,7 @@ jobs:
           python .github/scripts/security_exceptions.py trivy-ignorefile .trivyignore.ci
 
       - name: Build local image for security scan
-        run: docker build -t ikano-ci:${{ github.sha }} .
+        run: docker build -t onboarding-ci:${{ github.sha }} .
 
       - name: Trivy container scan (HIGH/CRITICAL)
         run: |
@@ -281,7 +281,7 @@ jobs:
             --output /work/trivy-image-report.json \
             --ignorefile /work/.trivyignore.ci \
             --exit-code 1 \
-            ikano-ci:${{ github.sha }}
+            onboarding-ci:${{ github.sha }}
 
       - name: Upload container security artifacts
         if: always()
@@ -307,8 +307,8 @@ jobs:
           context: .
           push: ${{ github.ref == 'refs/heads/main' }}
           tags: |
-            protodoc/ikano:latest
-            protodoc/ikano:${{ github.sha }}
+            protodoc/onboarding:latest
+            protodoc/onboarding:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -326,9 +326,9 @@ jobs:
       postgres:
         image: postgres:16
         env:
-          POSTGRES_USER: ikano
-          POSTGRES_PASSWORD: ikano
-          POSTGRES_DB: ikano
+          POSTGRES_USER: onboarding
+          POSTGRES_PASSWORD: onboarding
+          POSTGRES_DB: onboarding
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
@@ -340,9 +340,9 @@ jobs:
     env:
       DB_HOST: localhost
       DB_PORT: 5432
-      DB_NAME: ikano
-      DB_USER: ikano
-      DB_PASSWORD: ikano
+      DB_NAME: onboarding
+      DB_USER: onboarding
+      DB_PASSWORD: onboarding
       E2E_BASE_URL: http://127.0.0.1:8000
 
     steps:

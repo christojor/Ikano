@@ -17,7 +17,7 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    app_name: str = Field(default="Ikano Work Sample", alias="APP_NAME")
+    app_name: str = Field(default="Banana Bank Work Sample", alias="APP_NAME")
     app_env: str = Field(default="local", alias="APP_ENV")
     debug: bool = Field(default=False, alias="DEBUG")
     show_home_service_status: bool = Field(default=True, alias="SHOW_HOME_SERVICE_STATUS")
@@ -27,9 +27,9 @@ class Settings(BaseSettings):
 
     db_host: str = Field(default="localhost", alias="DB_HOST")
     db_port: int = Field(default=5432, alias="DB_PORT")
-    db_name: str = Field(default="ikano", alias="DB_NAME")
-    db_user: str = Field(default="ikano", alias="DB_USER")
-    db_password: str = Field(default="ikano", alias="DB_PASSWORD")
+    db_name: str = Field(default="onboarding", alias="DB_NAME")
+    db_user: str = Field(default="onboarding", alias="DB_USER")
+    db_password: str = Field(default="onboarding", alias="DB_PASSWORD")
     db_sslmode: str = Field(default="", alias="DB_SSLMODE")
 
     @field_validator("secret_key")
