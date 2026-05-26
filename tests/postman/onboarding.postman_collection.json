@@ -1,8 +1,8 @@
 {
   "info": {
-    "name": "Ikano API Tests",
+    "name": "Banana Bank API Tests",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "description": "Contract tests for the Ikano onboarding API and server-rendered app."
+    "description": "Contract tests for the Banana Bank onboarding API and server-rendered app."
   },
   "item": [
     {
@@ -25,8 +25,8 @@
               "pm.test('Status code is 200', function () {",
               "    pm.response.to.have.status(200);",
               "});",
-              "pm.test('Body includes Ikano welcome message', function () {",
-              "    pm.expect(pm.response.text()).to.include('Welcome to Ikano Bank');",
+              "pm.test('Body includes Banana Bank welcome message', function () {",
+              "    pm.expect(pm.response.text()).to.include('Welcome to Banana Bank');",
               "});"
             ]
           }
@@ -564,4 +564,5 @@
     }
   ]
 }
+
 

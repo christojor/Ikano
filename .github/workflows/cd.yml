@@ -15,9 +15,9 @@ concurrency:
 
 env:
   AWS_REGION: eu-north-1
-  ECR_REPOSITORY: ikano-onboarding
-  EB_APPLICATION: ikano-onboarding
-  EB_ENVIRONMENT: ikano-onboarding-prod
+  ECR_REPOSITORY: onboarding
+  EB_APPLICATION: onboarding
+  EB_ENVIRONMENT: onboarding-prod
 
 jobs:
   deploy:
